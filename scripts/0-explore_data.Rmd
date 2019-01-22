@@ -1,0 +1,43 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r}
+library(tidyverse)
+```
+
+```{r}
+data_dir <- c("data/input/")
+data_files <- list.files(data_dir)
+data_files
+
+database <- paste0(data_dir, data_files) %>%
+            map(read_csv)
+
+names(database) <- str_extract(data_files, "NYCHVS [0-9]{4}") %>%
+                   tolower() %>%
+                   str_remove(" ")
+
+colnames(database$nychvs2017)
+
+View(database$nychvs2017)
+database$nychvs2017[1,] %>% t()
+
+table(database$nychvs2017$sba, useNA = "ifany")
+
+database$nychvs2017 %>%
+group_by(sba) %>%
+summarise(n()) %>%
+View
+
+database$nychvs2017 %>%
+group_by(sba) %>%
+summarise(n()) %>%
+View
+
+database$nychvs2017 %>%
+group_by(borough, sba) %>%
+summarise(n()) %>%
+View
+```
+
