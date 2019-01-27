@@ -46,15 +46,25 @@ View
 ```{r query311}
 # df311 <- read.socrata("https://data.cityofnewyork.us/resource/fhrw-4uyv.json")
 
-df <- read.socrata(
-  "https://data.cityofnewyork.us/resource/fhrw-4uyv.json",
-  app_token =  Sys.getenv("app_token"),
-  email     = Sys.getenv("email_address"),
-  password  = Sys.getenv("secret_token")
-)
+# df <- read.socrata(
+#   "https://data.cityofnewyork.us/resource/fhrw-4uyv.csv",
+#   app_token =  Sys.getenv("app_token"),
+#   email     = Sys.getenv("email_address"),
+#   password  = Sys.getenv("secret_token"))
+# 
+# df <- read.socrata(
+#   "https://data.cityofnewyork.us/resource/877v-uy6n")
+# colnames(df311)
 
-colnames(df311)
+df <- read_csv("../data/input/nyc311/2017_311complaints.csv") %>%
+      filter(`Agency Name` == "Department of Housing Preservation and Development")
+table(df$`Complaint Type`, useNA = "ifany")
+table(df$Descriptor, useNA = "ifany")
 
-
+df %>%
+group_by(`Complaint Type`, Descriptor) %>%
+summarise() %>%
+arrange(`Complaint Type`, Descriptor) %>%
+View()
 ```
 
