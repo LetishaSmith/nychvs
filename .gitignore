@@ -2,3 +2,8 @@
 .Rhistory
 .RData
 .Ruserdata
+
+.Renviron
+
+data/input/nyc311/
+
