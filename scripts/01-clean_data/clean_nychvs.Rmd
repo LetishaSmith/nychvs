@@ -7,7 +7,7 @@ library(tidyverse)
 ```
 
 ```{r}
-nychvs2017 <- "../../data/input/NYCHVS 2017 Occupied File for ASA Challenge_CSV.csv"
+nychvs2017 <- "../../data/input/nychvs/NYCHVS 2017 Occupied File for ASA Challenge_CSV.csv"
 
 codebook <- read_csv(nychvs2017)[1,] %>% 
             t() %>% 
@@ -15,9 +15,38 @@ codebook <- read_csv(nychvs2017)[1,] %>%
             as_tibble(rownames = NA)
 
 df <- read_csv(nychvs2017)[-1,] %>%
-      mutate(stairs = case_when(UF1_12)) %>%
+      mutate(issue_stairway = `_f1` == 1 | `_f2` == 1,
+             issue_floors = `_g12` == 1 | `_g3` == 1 | `_g4` == 1,
+             renter = `_9a` == 9)
       # as_tibble() %>%
-      select(borough, num_range("_f", 1:6))
+      # select(borough, issue_stairway, num_range("_f", 1:6))
+
 
 ```
 
+check recode of issue_stairway variable
+```{r}
+# check issue_stairway
+table(df$`_f1`, df$issue_stairway, useNA = "ifany")
+table(df$`_f2`, df$issue_stairway, useNA = "ifany")
+table(df$`_f1`, df$`_f2`, useNA = "ifany")
+
+# renter
+table(df$`_9a`, df$renter, useNA = "ifany")
+table(df$`_9a`, df$`_9c`, useNA = "ifany")
+```
+
+                   dplyr::mutate(domain = 
+                                   case_when(
+                                    str_detect(name_scale, "Knowledge") ~ "knowledge", 
+                                    groupid %in% c(9273, 9353, 11133, 9433, 11223, 11303) ~ "content", #
+                                    str_detect(name_scale, "Rapport") ~ "rapport", 
+                                    str_detect(name_scale, "Physical") ~ "physical", 
+                                    str_detect(name_scale, "Reasoning") ~ "reasoning", 
+                                    str_detect(name_scale, "Professionalism") ~ "professionalism", 
+                                    groupid %in% c(9493,9513,9523, 11523, 11163, 11253) ~ "oral", # 11523
+                                    groupid %in% c(9503,9533, 11333, 11173, 11343, 11523) ~ "written") %>% # 11333
+                                    
+                                    case_when(str_detect(string = feedback, pattern = "N/A") ~ NA_character_, 
+                                          TRUE ~ feedback) %>%
+                                  str_replace_all(pattern = "/", replacement = "/ ")
