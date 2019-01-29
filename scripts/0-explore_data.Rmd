@@ -75,5 +75,14 @@ filter(`Agency Name` %in% c("Condo or CoOp Unit",
 group_by(`Agency Name`, `Complaint Type`, Descriptor) %>%
 summarise() %>%
 View()
+
+df <- read.socrata(
+  "https://data.cityofnewyork.us/resource/fhrw-4uyv.json",
+  app_token =  Sys.getenv("app_token"),
+  email     = Sys.getenv("email_address"),
+  password  = Sys.getenv("secret_token")
+)
+
+colnames(df311)
 ```
 
