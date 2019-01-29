@@ -15,7 +15,7 @@ codebook <- read_csv(nychvs2017)[1,] %>%
             as_tibble(rownames = NA)
 
 df <- read_csv(nychvs2017)[-1,] %>%
-      mutate(stairs = case_when()) %>%
+      mutate(stairs = case_when(UF1_12)) %>%
       # as_tibble() %>%
       select(borough, num_range("_f", 1:6))
 
