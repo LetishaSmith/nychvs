@@ -2,9 +2,10 @@
 .Rhistory
 .RData
 .Ruserdata
+<<<<<<< HEAD
 
 .Renviron
 
 # data/
 2017_311complaints.csv
-
+resources/
