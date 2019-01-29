@@ -5,6 +5,6 @@
 
 .Renviron
 
-data/
+# data/
 2017_311complaints.csv
 
