@@ -4,36 +4,85 @@ output: html_notebook
 ---
 ```{r}
 library(tidyverse)
-```
-
-```{r}
 nychvs2017 <- "../../data/input/nychvs/NYCHVS 2017 Occupied File for ASA Challenge_CSV.csv"
 
+```
+
+```{r codebook}
 codebook <- read_csv(nychvs2017)[1,] %>% 
             t() %>% 
             as.matrix() %>% 
             as_tibble(rownames = NA)
+```
 
+```{r recode_vars}
 df <- read_csv(nychvs2017)[-1,] %>%
       mutate(issue_stairway = `_f1` == 1 | `_f2` == 1,
              issue_floors = `_g12` == 1 | `_g3` == 1 | `_g4` == 1,
-             renter = `_9a` == 9)
-      # as_tibble() %>%
-      # select(borough, issue_stairway, num_range("_f", 1:6))
+             renter = `_9a` == 9,
+             issue_toilet =  `_25c` == 1, 
+             issue_heat = `_32a` == 0,
+             issue_pests = `_35a` == 1 | `_35b` %in% 2:4,
+             issue_plasterpaint = `_37a` == 0,
+             issue_leak = `_38a` == 1,
+             housing_public = csrr == 5) %>%
+      select(borough, sub, sba, geo_id2, starts_with("issue"), 
+             renter, hhweight, seqn, housing_public, starts_with("FW"))
 
+df %>% select(hhweight, seqn, starts_with("FW")) %>% View()
+```
 
+```{r}
+knitr::opts_chunk$set(eval = FALSE)
 ```
 
 check recode of issue_stairway variable
-```{r}
+```{r issue_stairway}
 # check issue_stairway
 table(df$`_f1`, df$issue_stairway, useNA = "ifany")
 table(df$`_f2`, df$issue_stairway, useNA = "ifany")
 table(df$`_f1`, df$`_f2`, useNA = "ifany")
+```
 
-# renter
+check recode of renter variable
+```{r renter}
+# check variable recode
 table(df$`_9a`, df$renter, useNA = "ifany")
+# check how 2 variables about rental status relate to one another
 table(df$`_9a`, df$`_9c`, useNA = "ifany")
+```
+
+check recode of issue_toilet
+```{r issue_toilet}
+table(df$`_25c`, df$issue_toilet, useNA = "ifany")
+```
+
+check recode of issue_heat 
+```{r issue_heat}
+# look at 2 variables related to heat
+table(df$`_32b`, df$`_32a`, useNA = "ifany")
+# recode
+table(df$`_32a`, df$issue_heat, useNA = "ifany")
+```
+
+check recode of issue_pests
+```{r issue_pests}
+table(df$`_35a`, df$`_35b`, useNA = "ifany")
+
+table(df$`_35a`, df$issue_pests, useNA = "ifany")
+table(df$`_35b`, df$issue_pests, useNA = "ifany")
+```
+
+```{r issue_plasterpaint}
+table(df$`_37a`, df$issue_plasterpaint, useNA = "ifany")
+```
+
+```{r issue_leak}
+table(df$`_38a`, df$issue_leak, useNA = "ifany")
+```
+
+```{r housing_public}
+table(df$csrr, df$housing_public)
 ```
 
                    dplyr::mutate(domain = 
