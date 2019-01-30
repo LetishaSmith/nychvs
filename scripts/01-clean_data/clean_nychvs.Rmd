@@ -4,6 +4,7 @@ output: html_notebook
 ---
 ```{r}
 library(tidyverse)
+library(survey)
 nychvs2017 <- "../../data/input/nychvs/NYCHVS 2017 Occupied File for ASA Challenge_CSV.csv"
 
 ```
@@ -29,7 +30,7 @@ df <- read_csv(nychvs2017)[-1,] %>%
       select(borough, sub, sba, geo_id2, starts_with("issue"), 
              renter, hhweight, seqn, housing_public, starts_with("FW"))
 
-df %>% select(hhweight, seqn, starts_with("FW")) %>% View()
+# df %>% select(hhweight, seqn, starts_with("FW")) %>% View()
 ```
 
 ```{r}
@@ -85,17 +86,24 @@ table(df$`_38a`, df$issue_leak, useNA = "ifany")
 table(df$csrr, df$housing_public)
 ```
 
-                   dplyr::mutate(domain = 
-                                   case_when(
-                                    str_detect(name_scale, "Knowledge") ~ "knowledge", 
-                                    groupid %in% c(9273, 9353, 11133, 9433, 11223, 11303) ~ "content", #
-                                    str_detect(name_scale, "Rapport") ~ "rapport", 
-                                    str_detect(name_scale, "Physical") ~ "physical", 
-                                    str_detect(name_scale, "Reasoning") ~ "reasoning", 
-                                    str_detect(name_scale, "Professionalism") ~ "professionalism", 
-                                    groupid %in% c(9493,9513,9523, 11523, 11163, 11253) ~ "oral", # 11523
-                                    groupid %in% c(9503,9533, 11333, 11173, 11343, 11523) ~ "written") %>% # 11333
-                                    
-                                    case_when(str_detect(string = feedback, pattern = "N/A") ~ NA_character_, 
-                                          TRUE ~ feedback) %>%
-                                  str_replace_all(pattern = "/", replacement = "/ ")
+create an appropriate design object that contains the data variables and the replication weights metadata needed for valid estimation
+```{r}
+dfsvy <- svrepdesign(variables = select(df, borough, sub, sba, geo_id2, 
+                                     starts_with("issue"), renter, housing_public), 
+                  repweights = select(df, starts_with("FW")),
+                  weights = df$hhweight, 
+                  type="Fay",
+                  fay.rho = 4/80,
+                  combined.weights=TRUE,
+                  data = df)
+
+dfsvy <- svrepdesign(variables = select(df, borough, sub, sba, geo_id2, 
+                                     starts_with("issue"), renter, housing_public), 
+                  repweights = paste0("FW", 1:80),
+                  weights = df$hhweight, 
+                  type="Fay",
+                  rho = 4/80,
+                  combined.weights=TRUE,
+                  data = df)
+```
+
