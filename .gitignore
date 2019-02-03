@@ -6,6 +6,6 @@
 
 .Renviron
 
-# data/
-2017_311complaints.csv
+data/
 resources/
+311_Service_Requests_from_2010_to_Present.csv
