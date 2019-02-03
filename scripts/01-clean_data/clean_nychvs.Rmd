@@ -28,7 +28,9 @@ df <- read_csv(nychvs2017)[-1,] %>%
              issue_leak = `_38a` == 1,
              housing_public = csrr == 5) %>%
       select(borough, sub, sba, geo_id2, starts_with("issue"), 
-             renter, hhweight, seqn, housing_public, starts_with("FW"))
+             renter, hhweight, seqn, housing_public, starts_with("FW")) %>% 
+      modify_at(c("hhweight", paste0("FW", 1:80)), as.integer) %>%
+      
 
 # df %>% select(hhweight, seqn, starts_with("FW")) %>% View()
 ```
@@ -43,6 +45,14 @@ check recode of issue_stairway variable
 table(df$`_f1`, df$issue_stairway, useNA = "ifany")
 table(df$`_f2`, df$issue_stairway, useNA = "ifany")
 table(df$`_f1`, df$`_f2`, useNA = "ifany")
+```
+
+check recode of issue_floors variable
+```{r issue_floors}
+# check issue_stairway
+table(df$`_g12`, df$issue_floors, useNA = "ifany")
+table(df$`_g3`, df$issue_floors, useNA = "ifany")
+table(df$`_g4`, df$issue_floors, useNA = "ifany")
 ```
 
 check recode of renter variable
@@ -74,16 +84,27 @@ table(df$`_35a`, df$issue_pests, useNA = "ifany")
 table(df$`_35b`, df$issue_pests, useNA = "ifany")
 ```
 
+check recode of issue_plasterpaint
 ```{r issue_plasterpaint}
 table(df$`_37a`, df$issue_plasterpaint, useNA = "ifany")
 ```
 
+check recode of issue_leak
 ```{r issue_leak}
 table(df$`_38a`, df$issue_leak, useNA = "ifany")
 ```
 
+check recode of issue_leak
 ```{r housing_public}
 table(df$csrr, df$housing_public)
+```
+
+explore relationship between sub-borough-area & geoid2
+```{r}
+sba <- df %>%
+       group_by(sba, geo_id2) %>%
+       summarise() %>%
+       arrange(geo_id2)
 ```
 
 create an appropriate design object that contains the data variables and the replication weights metadata needed for valid estimation
@@ -100,10 +121,23 @@ dfsvy <- svrepdesign(variables = select(df, borough, sub, sba, geo_id2,
 dfsvy <- svrepdesign(variables = select(df, borough, sub, sba, geo_id2, 
                                      starts_with("issue"), renter, housing_public), 
                   repweights = paste0("FW", 1:80),
-                  weights = df$hhweight, 
+                  weights = df$hhweight,
+                  scale = 4/80,
+                  rscales = rep(1,80),
                   type="Fay",
-                  rho = 4/80,
+                  rho = 0.5,
+                  mse = TRUE,
+                  combined.weights=FALSE,
+                  data = df)
+
+dfsvy <- svrepdesign(variables = df[ ,c(seq(12), 14, 15)], 
+                  repweights = "FW[0-9]+",
+                  weights = ~hhweight,
                   combined.weights=TRUE,
+                  type="Fay",
+                  rho = (1-1/sqrt(4)),
+                  scale = 4/80,
+                  rscales = rep(1,80),
                   data = df)
 ```
 
