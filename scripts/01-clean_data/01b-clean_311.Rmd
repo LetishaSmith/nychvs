@@ -1,0 +1,154 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r}
+library(tidyverse)
+library(lubridate)
+library(tigris)
+```
+
+Interviews started in January of 2017 and continued through May 2017
+Toilet qustion past 3 months
+Mice and rats past 3 months
+
+cockroaches past month
+
+Therefore 311 data October 2016-May 2017
+department housing preservation
+10/01/2016 12:00:00 AM
+06/01/2017 12:00:00 AM
+
+Complaint Type %in% c("HEAT/HOT WATER", "FLOORING/STAIRS", "PLUMBING", "UNSANITARY CONDITION", "PAINT/PLASTER", "WATER LEAK")
+
+```{r, eval=FALSE}
+# df0 <- read_csv("../../data/input/311_Service_Requests_from_2010_to_Present.csv")
+rm(list = ls())
+df0 <- read_csv("../../data/input/311_Service_Requests_from_2010_to_Present.csv") %>%
+        select(`Created Date`, `Complaint Type`, Descriptor, `Incident Zip`, 
+               `Incident Address`, `Street Name`, Borough, City, Latitude, Longitude, 
+                Location) %>%
+        mutate(issue_stairway = `Complaint Type` == "FLOORING/STAIRS" & 
+                                 Descriptor == "STAIRS",
+               issue_floors = `Complaint Type` == "FLOORING/STAIRS" & 
+                               Descriptor == "FLOOR",
+               issue_toilet = `Complaint Type` == "PLUMBING" & 
+                               Descriptor == "TOILET",
+               issue_heat = `Complaint Type` == "HEAT/HOT WATER" & 
+                             Descriptor == "APARTMENT ONLY",
+               issue_pests = `Complaint Type` == "UNSANITARY CONDITION" & 
+                             Descriptor == "PESTS",
+               issue_plasterpaint = `Complaint Type` == "PAINT/PLASTER" & 
+                                     Descriptor %in% c("CEILING", "WALL"),
+               issue_leak = `Complaint Type` == "WATER LEAK",
+               # datetime formatted to confirm proper timeframe represented
+               `Created Date` = mdy_hms(`Created Date`)) %>% 
+        filter(select(., starts_with("issue")) %>% rowSums() == 1) %>%
+        filter(!is.na(Location)) %>%
+          # confirm that a residence only reports complain once in dataset
+        group_by(`Complaint Type`, Descriptor, Latitude, Longitude, 
+                 Borough, City, `Incident Zip`) %>%
+        summarise_at(vars(starts_with("issue")), funs(max(.))) 
+```
+
+use [census geolocate api](https://www.census.gov/geo/maps-data/data/geocoder.html) to get the census code associated with coordinates                  
+note: [how to interpret census code](http://proximityone.com/geo_tracts.htm)      
+```{r, eval=FALSE}
+# note: this code takes approx 6 hours to run
+start_time <- Sys.time()
+df1 <- df0 %>%
+       mutate(census_code = map2(.x = Latitude, .y = Longitude, .f = call_geolocator_latlon))
+stop_time <- Sys.time()
+
+write_csv(df1, "../../data/output/nyc311/01-nyc311_complaintXcoordinates.csv")
+saveRDS(df1, "../../data/output/nyc311/01-nyc311_complaintXcoordinates.rds")
+```
+
+```{r}
+df1 <-  read_rds("../../data/output/nyc311/01-nyc311_complaintXcoordinates.rds") %>%
+        mutate(census_code = as.character(census_code),
+               state_code = str_sub(census_code, 1, 2),
+               county_code = str_sub(census_code, 3, 5),
+               census_tract = str_sub(census_code, 6, 11))
+
+# how to access other meta information in census_code
+               # state_code = str_sub(census_code, 1, 2),
+               # county_code = str_sub(census_code, 3, 5),
+               # census_tract = str_sub(census_code, 6, 11),
+               # census_block = str_sub(census_code, 12, 15),
+```
+
+Aim: Now that I have census tract information about each complaint, I want to link census tract to 
+Public Use Microdata Areas (PUMAs) because these areas approximate to sub-boroughs. Once I know the sub-borough of each complaint, then I can link 311 data to NYCHVS data.
+
+Here is the webpage storing the text file that links [Census Tract to PUMAs](https://www.census.gov/geo/maps-data/data/centract_rel.html)
+```{r}
+tract2pumas <- read_csv("https://www2.census.gov/geo/docs/maps-data/data/rel/2010_Census_Tract_to_2010_PUMA.txt")
+
+write_csv(tract2pumas, "../../data/output/linking/2010_Census_Tract_to_2010_PUMA.csv")
+```
+
+join 311 data with pumas data
+```{r}
+df1 <- left_join(x = df1, 
+                 y = tract2pumas, 
+                 by = c("state_code" = "STATEFP", 
+                        "county_code" = "COUNTYFP",
+                        "census_tract" = "TRACTCE"))
+```
+
+
+********************************************************************************
+```{r}
+knitr::opts_chunk$set(eval = FALSE)
+```
+
+check recode of issue_stairway variable
+```{r issue_stairway}
+df %>%
+group_by(`Complaint Type`, Descriptor, issue_stairway) %>%
+summarise(sum(issue_stairway))
+```
+
+check recode of issue_floors variable
+```{r issue_floors}
+df %>%
+group_by(`Complaint Type`, Descriptor, issue_floors) %>%
+summarise(sum(issue_floors))
+```
+
+check recode of issue_toilet
+```{r issue_toilet}
+df %>%
+group_by(`Complaint Type`, Descriptor, issue_toilet) %>%
+summarise(sum(issue_toilet))
+```
+
+check recode of issue_heat 
+```{r issue_heat}
+df %>%
+group_by(`Complaint Type`, Descriptor, issue_heat) %>%
+summarise(sum(issue_heat))
+```
+
+check recode of issue_pests
+```{r issue_pests}
+df %>%
+group_by(`Complaint Type`, Descriptor, issue_pests) %>%
+summarise(sum(issue_pests))
+```
+
+check recode of issue_plasterpaint
+```{r issue_plasterpaint}
+df %>%
+group_by(`Complaint Type`, Descriptor, issue_plasterpaint) %>%
+summarise(sum(issue_plasterpaint))
+```
+
+check recode of issue_leak
+```{r issue_leak}
+df %>%
+group_by(`Complaint Type`, Descriptor, issue_leak) %>%
+summarise(sum(issue_leak))
+```
+
