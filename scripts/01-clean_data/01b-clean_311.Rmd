@@ -85,7 +85,7 @@ Here is the webpage storing the text file that links [Census Tract to PUMAs](htt
 ```{r}
 tract2pumas <- read_csv("https://www2.census.gov/geo/docs/maps-data/data/rel/2010_Census_Tract_to_2010_PUMA.txt")
 
-write_csv(tract2pumas, "../../data/output/linking/2010_Census_Tract_to_2010_PUMA.csv")
+write_csv(tract2pumas, "../../data/input/linking/2010_Census_Tract_to_2010_PUMA.csv")
 ```
 
 join 311 data with pumas data
@@ -94,9 +94,22 @@ df1 <- left_join(x = df1,
                  y = tract2pumas, 
                  by = c("state_code" = "STATEFP", 
                         "county_code" = "COUNTYFP",
-                        "census_tract" = "TRACTCE"))
+                        "census_tract" = "TRACTCE")) 
 ```
 
+prepare 311 data go be joined with nychvs data
+```{r}
+df2 <- df1 %>%
+       mutate(geo_id2 = paste0(state_code, PUMA5CE)) %>%
+       group_by(geo_id2) %>%
+       summarise_at(vars(starts_with("issue")), funs(sum(.))) %>%
+       arrange(geo_id2)
+```
+
+```{r}
+write_csv(df2, "../../data/output/nyc311/02-nyc311_complaintXsubboro.csv")
+saveRDS(df2, "../../data/output/nyc311/02-nyc311_complaintXsubboro.rds")
+```
 
 ********************************************************************************
 ```{r}
