@@ -1,0 +1,30 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r}
+library(survey)
+library(srvyr)
+```
+
+```{r}
+rm(list = ls())
+nychvs <- read_rds("../../data/output/nychvs/nychvs2017.rds")
+```
+
+create an appropriate design object that contains the data variables and the replication weights metadata needed for valid estimation
+```{r}
+svy <- svrepdesign(variables = nychvs[ ,seq(19)], 
+                    repweights = nychvs[ ,paste0("FW", seq(80))],
+                    weights = ~hhweight,
+                    combined.weights=TRUE,
+                    type="Fay",
+                    rho = (1-1/sqrt(4)),
+                    scale = 4/80,
+                    rscales = rep(1,80),
+                    data = nychvs) %>%
+      as_survey_rep()
+
+
+```
+
