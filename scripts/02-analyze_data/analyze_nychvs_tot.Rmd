@@ -10,7 +10,7 @@ library(srvyr)
 ```{r}
 rm(list = ls())
 nychvs <- read_rds("../../data/output/nychvs/nychvs2017.rds")
-nyc311 <- read_rds("../../data/output/nyc311/03-nyc311_complaintXsubboroPROP.rds")
+nyc311 <- read_rds("../../data/output/nyc311/02-nyc311_complaintXsubboro.rds")
 pumas <- read_excel("../../data/input/linking/nyc_puma_neighborhood.xls")
 ```
 
@@ -34,11 +34,11 @@ svy %>%
 filter(renter, issue_stairway) %>%
 mutate(geo_id2 = as.factor(geo_id2)) %>%
 group_by(geo_id2) %>%
-summarise(floors_prop = survey_mean()) %>%
-mutate(lower = floors_prop-1.96*floors_prop_se,
-       upper = floors_prop+1.96*floors_prop_se) %>%
+summarise(prop = survey_total(issue_stairway)) %>%
+mutate(lower = prop-1.96*prop_se,
+       upper = prop+1.96*prop_se) %>%
 full_join(nyc311, by = "geo_id2") %>%
-select(geo_id2, contains("stair"), lower, upper) %>%
+select(geo_id2, contains("stair"), contains("prop"), lower, upper) %>%
 mutate(same = issue_stairway >= lower & issue_stairway <= upper,
        how_diff = case_when(issue_stairway < lower ~ "less_problems",
                             issue_stairway > upper ~ "more_problems")) %>%
@@ -54,7 +54,7 @@ svy %>%
 filter(renter, issue_floors) %>%
 mutate(geo_id2 = as.factor(geo_id2)) %>%
 group_by(geo_id2) %>%
-summarise(floors_prop = survey_mean()) %>%
+summarise(floors_prop = survey_total(issue_floors)) %>%
 mutate(lower = floors_prop-1.96*floors_prop_se,
        upper = floors_prop+1.96*floors_prop_se) %>%
 full_join(nyc311, by = "geo_id2") %>%
@@ -74,7 +74,7 @@ svy %>%
 filter(renter, issue_toilet) %>%
 mutate(geo_id2 = as.factor(geo_id2)) %>%
 group_by(geo_id2) %>%
-summarise(prop = survey_mean()) %>%
+summarise(prop = survey_total(issue_toilet)) %>%
 mutate(lower = prop-1.96*prop_se,
        upper = prop+1.96*prop_se) %>%
 full_join(nyc311, by = "geo_id2") %>%
@@ -94,7 +94,7 @@ svy %>%
 filter(renter, issue_heat) %>%
 mutate(geo_id2 = as.factor(geo_id2)) %>%
 group_by(geo_id2) %>%
-summarise(prop = survey_mean()) %>%
+summarise(prop = survey_total(issue_toilet)) %>%
 mutate(lower = prop-1.96*prop_se,
        upper = prop+1.96*prop_se) %>%
 full_join(nyc311, by = "geo_id2") %>%
@@ -114,7 +114,7 @@ svy %>%
 filter(renter, issue_pests) %>%
 mutate(geo_id2 = as.factor(geo_id2)) %>%
 group_by(geo_id2) %>%
-summarise(prop = survey_mean()) %>%
+summarise(prop = survey_total(issue_pests)) %>%
 mutate(lower = prop-1.96*prop_se,
        upper = prop+1.96*prop_se) %>%
 full_join(nyc311, by = "geo_id2") %>%
@@ -134,7 +134,7 @@ svy %>%
 filter(renter, issue_plasterpaint) %>%
 mutate(geo_id2 = as.factor(geo_id2)) %>%
 group_by(geo_id2) %>%
-summarise(prop = survey_mean()) %>%
+summarise(prop = survey_total(issue_pests)) %>%
 mutate(lower = prop-1.96*prop_se,
        upper = prop+1.96*prop_se) %>%
 full_join(nyc311, by = "geo_id2") %>%
@@ -154,7 +154,7 @@ svy %>%
 filter(renter, issue_leak) %>%
 mutate(geo_id2 = as.factor(geo_id2)) %>%
 group_by(geo_id2) %>%
-summarise(prop = survey_mean()) %>%
+summarise(prop = survey_total(issue_leak)) %>%
 mutate(lower = prop-1.96*prop_se,
        upper = prop+1.96*prop_se) %>%
 full_join(nyc311, by = "geo_id2") %>%

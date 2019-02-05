@@ -186,9 +186,11 @@ library(srvyr)</code></pre>
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjpbInJtKGxpc3QgPSBscygpKSIsIm55Y2h2cyA8LSByZWFkX3JkcyhcIi4uLy4uL2RhdGEvb3V0cHV0L255Y2h2cy9ueWNodnMyMDE3LnJkc1wiKSJdfQ== -->
+<!-- rnb-source-begin eyJkYXRhIjpbInJtKGxpc3QgPSBscygpKSIsIm55Y2h2cyA8LSByZWFkX3JkcyhcIi4uLy4uL2RhdGEvb3V0cHV0L255Y2h2cy9ueWNodnMyMDE3LnJkc1wiKSIsIm55YzMxMSA8LSByZWFkX3JkcyhcIi4uLy4uL2RhdGEvb3V0cHV0L255YzMxMS8wMy1ueWMzMTFfY29tcGxhaW50WHN1YmJvcm9QUk9QLnJkc1wiKSIsInB1bWFzIDwtIHJlYWRfZXhjZWwoXCIuLi8uLi9kYXRhL2lucHV0L2xpbmtpbmcvbnljX3B1bWFfbmVpZ2hib3Job29kLnhsc1wiKSJdfQ== -->
 <pre class="r"><code>rm(list = ls())
-nychvs &lt;- read_rds(&quot;../../data/output/nychvs/nychvs2017.rds&quot;)</code></pre>
+nychvs &lt;- read_rds(&quot;../../data/output/nychvs/nychvs2017.rds&quot;)
+nyc311 &lt;- read_rds(&quot;../../data/output/nyc311/03-nyc311_complaintXsubboroPROP.rds&quot;)
+pumas &lt;- read_excel(&quot;../../data/input/linking/nyc_puma_neighborhood.xls&quot;)</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
@@ -210,8 +212,169 @@ nychvs &lt;- read_rds(&quot;../../data/output/nychvs/nychvs2017.rds&quot;)</code
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjpbIm9iaiA8LSIsInN2eSAlPiUiLCJmaWx0ZXIocmVudGVyLCBpc3N1ZV9zdGFpcndheSkgJT4lIiwibXV0YXRlKGdlb19pZDIgPSBhcy5mYWN0b3IoZ2VvX2lkMikpICU+JSIsImdyb3VwX2J5KGdlb19pZDIpICU+JSIsInN1bW1hcmlzZShmbG9vcnNfcHJvcCA9IHN1cnZleV9tZWFuKCkpICU+JSIsIm11dGF0ZShsb3dlciA9IGZsb29yc19wcm9wLTEuOTYqZmxvb3JzX3Byb3Bfc2UsIiwiICAgICAgIHVwcGVyID0gZmxvb3JzX3Byb3ArMS45NipmbG9vcnNfcHJvcF9zZSkgJT4lIiwiZnVsbF9qb2luKG55YzMxMSwgYnkgPSBcImdlb19pZDJcIikgJT4lIiwic2VsZWN0KGdlb19pZDIsIGNvbnRhaW5zKFwic3RhaXJcIiksIGxvd2VyLCB1cHBlcikgJT4lIiwibXV0YXRlKHNhbWUgPSBpc3N1ZV9zdGFpcndheSA+PSBsb3dlciAmIGlzc3VlX3N0YWlyd2F5IDw9IHVwcGVyLCIsIiAgICAgICBob3dfZGlmZiA9IGNhc2Vfd2hlbihpc3N1ZV9zdGFpcndheSA8IGxvd2VyIH4gXCJsZXNzX3Byb2JsZW1zXCIsIiwiICAgICAgICAgICAgICAgICAgICAgICAgICAgIGlzc3VlX3N0YWlyd2F5ID4gdXBwZXIgfiBcIm1vcmVfcHJvYmxlbXNcIikpICU+JSIsImZpbHRlcihzYW1lID09IEZBTFNFIHwgaXMubmEoc2FtZSkpICU+JSIsImxlZnRfam9pbihwdW1hcywgYnkgPSBjKFwiZ2VvX2lkMlwiID0gXCJQVU1BNUlEXCIpKSIsIiIsInRhYmxlKG9iaiRob3dfZGlmZiwgdXNlTkEgPSBcImlmYW55XCIpIl19 -->
+<pre class="r"><code>obj &lt;-
+svy %&gt;%
+filter(renter, issue_stairway) %&gt;%
+mutate(geo_id2 = as.factor(geo_id2)) %&gt;%
+group_by(geo_id2) %&gt;%
+summarise(floors_prop = survey_mean()) %&gt;%
+mutate(lower = floors_prop-1.96*floors_prop_se,
+       upper = floors_prop+1.96*floors_prop_se) %&gt;%
+full_join(nyc311, by = &quot;geo_id2&quot;) %&gt;%
+select(geo_id2, contains(&quot;stair&quot;), lower, upper) %&gt;%
+mutate(same = issue_stairway &gt;= lower &amp; issue_stairway &lt;= upper,
+       how_diff = case_when(issue_stairway &lt; lower ~ &quot;less_problems&quot;,
+                            issue_stairway &gt; upper ~ &quot;more_problems&quot;)) %&gt;%
+filter(same == FALSE | is.na(same)) %&gt;%
+left_join(pumas, by = c(&quot;geo_id2&quot; = &quot;PUMA5ID&quot;))
 
-<div id="rmd-source-code">LS0tCnRpdGxlOiAiUiBOb3RlYm9vayIKb3V0cHV0OiBodG1sX25vdGVib29rCi0tLQpgYGB7cn0KbGlicmFyeShzdXJ2ZXkpCmxpYnJhcnkoc3J2eXIpCmBgYAoKYGBge3J9CnJtKGxpc3QgPSBscygpKQpueWNodnMgPC0gcmVhZF9yZHMoIi4uLy4uL2RhdGEvb3V0cHV0L255Y2h2cy9ueWNodnMyMDE3LnJkcyIpCmBgYAoKY3JlYXRlIGFuIGFwcHJvcHJpYXRlIGRlc2lnbiBvYmplY3QgdGhhdCBjb250YWlucyB0aGUgZGF0YSB2YXJpYWJsZXMgYW5kIHRoZSByZXBsaWNhdGlvbiB3ZWlnaHRzIG1ldGFkYXRhIG5lZWRlZCBmb3IgdmFsaWQgZXN0aW1hdGlvbgpgYGB7cn0Kc3Z5IDwtIHN2cmVwZGVzaWduKHZhcmlhYmxlcyA9IG55Y2h2c1sgLHNlcSgxOSldLCAKICAgICAgICAgICAgICAgICAgICByZXB3ZWlnaHRzID0gbnljaHZzWyAscGFzdGUwKCJGVyIsIHNlcSg4MCkpXSwKICAgICAgICAgICAgICAgICAgICB3ZWlnaHRzID0gfmhod2VpZ2h0LAogICAgICAgICAgICAgICAgICAgIGNvbWJpbmVkLndlaWdodHM9VFJVRSwKICAgICAgICAgICAgICAgICAgICB0eXBlPSJGYXkiLAogICAgICAgICAgICAgICAgICAgIHJobyA9ICgxLTEvc3FydCg0KSksCiAgICAgICAgICAgICAgICAgICAgc2NhbGUgPSA0LzgwLAogICAgICAgICAgICAgICAgICAgIHJzY2FsZXMgPSByZXAoMSw4MCksCiAgICAgICAgICAgICAgICAgICAgZGF0YSA9IG55Y2h2cykgJT4lCiAgICAgIGFzX3N1cnZleV9yZXAoKQoKCmBgYAoK</div>
+table(obj$how_diff, useNA = &quot;ifany&quot;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjpbIm9iaiA8LSIsInN2eSAlPiUiLCJmaWx0ZXIocmVudGVyLCBpc3N1ZV9mbG9vcnMpICU+JSIsIm11dGF0ZShnZW9faWQyID0gYXMuZmFjdG9yKGdlb19pZDIpKSAlPiUiLCJncm91cF9ieShnZW9faWQyKSAlPiUiLCJzdW1tYXJpc2UoZmxvb3JzX3Byb3AgPSBzdXJ2ZXlfbWVhbigpKSAlPiUiLCJtdXRhdGUobG93ZXIgPSBmbG9vcnNfcHJvcC0xLjk2KmZsb29yc19wcm9wX3NlLCIsIiAgICAgICB1cHBlciA9IGZsb29yc19wcm9wKzEuOTYqZmxvb3JzX3Byb3Bfc2UpICU+JSIsImZ1bGxfam9pbihueWMzMTEsIGJ5ID0gXCJnZW9faWQyXCIpICU+JSIsInNlbGVjdChnZW9faWQyLCBjb250YWlucyhcImZsb29yc1wiKSwgbG93ZXIsIHVwcGVyKSAlPiUiLCJtdXRhdGUoc2FtZSA9IGlzc3VlX2Zsb29ycyA+PSBsb3dlciAmIGlzc3VlX2Zsb29ycyA8PSB1cHBlciwiLCIgICAgICAgaG93X2RpZmYgPSBjYXNlX3doZW4oaXNzdWVfZmxvb3JzIDwgbG93ZXIgfiBcImxlc3NfcHJvYmxlbXNcIiwiLCIgICAgICAgICAgICAgICAgICAgICAgICAgICAgaXNzdWVfZmxvb3JzID4gdXBwZXIgfiBcIm1vcmVfcHJvYmxlbXNcIikpICU+JSIsImZpbHRlcihzYW1lID09IEZBTFNFIHwgaXMubmEoc2FtZSkpICU+JSIsImxlZnRfam9pbihwdW1hcywgYnkgPSBjKFwiZ2VvX2lkMlwiID0gXCJQVU1BNUlEXCIpKSIsIiIsInRhYmxlKG9iaiRob3dfZGlmZiwgdXNlTkEgPSBcImlmYW55XCIpIl19 -->
+<pre class="r"><code>obj &lt;-
+svy %&gt;%
+filter(renter, issue_floors) %&gt;%
+mutate(geo_id2 = as.factor(geo_id2)) %&gt;%
+group_by(geo_id2) %&gt;%
+summarise(floors_prop = survey_mean()) %&gt;%
+mutate(lower = floors_prop-1.96*floors_prop_se,
+       upper = floors_prop+1.96*floors_prop_se) %&gt;%
+full_join(nyc311, by = &quot;geo_id2&quot;) %&gt;%
+select(geo_id2, contains(&quot;floors&quot;), lower, upper) %&gt;%
+mutate(same = issue_floors &gt;= lower &amp; issue_floors &lt;= upper,
+       how_diff = case_when(issue_floors &lt; lower ~ &quot;less_problems&quot;,
+                            issue_floors &gt; upper ~ &quot;more_problems&quot;)) %&gt;%
+filter(same == FALSE | is.na(same)) %&gt;%
+left_join(pumas, by = c(&quot;geo_id2&quot; = &quot;PUMA5ID&quot;))
+
+table(obj$how_diff, useNA = &quot;ifany&quot;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjpbIm9iaiA8LSIsInN2eSAlPiUiLCJmaWx0ZXIocmVudGVyLCBpc3N1ZV90b2lsZXQpICU+JSIsIm11dGF0ZShnZW9faWQyID0gYXMuZmFjdG9yKGdlb19pZDIpKSAlPiUiLCJncm91cF9ieShnZW9faWQyKSAlPiUiLCJzdW1tYXJpc2UocHJvcCA9IHN1cnZleV9tZWFuKCkpICU+JSIsIm11dGF0ZShsb3dlciA9IHByb3AtMS45Nipwcm9wX3NlLCIsIiAgICAgICB1cHBlciA9IHByb3ArMS45Nipwcm9wX3NlKSAlPiUiLCJmdWxsX2pvaW4obnljMzExLCBieSA9IFwiZ2VvX2lkMlwiKSAlPiUiLCJzZWxlY3QoZ2VvX2lkMiwgY29udGFpbnMoXCJ0b2lsZXRcIiksIGNvbnRhaW5zKFwicHJvcFwiKSwgbG93ZXIsIHVwcGVyKSAlPiUiLCJtdXRhdGUoc2FtZSA9IGlzc3VlX3RvaWxldCA+PSBsb3dlciAmIGlzc3VlX3RvaWxldCA8PSB1cHBlciwiLCIgICAgICAgaG93X2RpZmYgPSBjYXNlX3doZW4oaXNzdWVfdG9pbGV0IDwgbG93ZXIgfiBcImxlc3NfcHJvYmxlbXNcIiwiLCIgICAgICAgICAgICAgICAgICAgICAgICAgICAgaXNzdWVfdG9pbGV0ID4gdXBwZXIgfiBcIm1vcmVfcHJvYmxlbXNcIikpICU+JSIsImZpbHRlcihzYW1lID09IEZBTFNFIHwgaXMubmEoc2FtZSkpICU+JSIsImxlZnRfam9pbihwdW1hcywgYnkgPSBjKFwiZ2VvX2lkMlwiID0gXCJQVU1BNUlEXCIpKSIsIiIsInRhYmxlKG9iaiRob3dfZGlmZiwgdXNlTkEgPSBcImlmYW55XCIpIl19 -->
+<pre class="r"><code>obj &lt;-
+svy %&gt;%
+filter(renter, issue_toilet) %&gt;%
+mutate(geo_id2 = as.factor(geo_id2)) %&gt;%
+group_by(geo_id2) %&gt;%
+summarise(prop = survey_mean()) %&gt;%
+mutate(lower = prop-1.96*prop_se,
+       upper = prop+1.96*prop_se) %&gt;%
+full_join(nyc311, by = &quot;geo_id2&quot;) %&gt;%
+select(geo_id2, contains(&quot;toilet&quot;), contains(&quot;prop&quot;), lower, upper) %&gt;%
+mutate(same = issue_toilet &gt;= lower &amp; issue_toilet &lt;= upper,
+       how_diff = case_when(issue_toilet &lt; lower ~ &quot;less_problems&quot;,
+                            issue_toilet &gt; upper ~ &quot;more_problems&quot;)) %&gt;%
+filter(same == FALSE | is.na(same)) %&gt;%
+left_join(pumas, by = c(&quot;geo_id2&quot; = &quot;PUMA5ID&quot;))
+
+table(obj$how_diff, useNA = &quot;ifany&quot;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjpbIm9iaiA8LSIsInN2eSAlPiUiLCJmaWx0ZXIocmVudGVyLCBpc3N1ZV9oZWF0KSAlPiUiLCJtdXRhdGUoZ2VvX2lkMiA9IGFzLmZhY3RvcihnZW9faWQyKSkgJT4lIiwiZ3JvdXBfYnkoZ2VvX2lkMikgJT4lIiwic3VtbWFyaXNlKHByb3AgPSBzdXJ2ZXlfbWVhbigpKSAlPiUiLCJtdXRhdGUobG93ZXIgPSBwcm9wLTEuOTYqcHJvcF9zZSwiLCIgICAgICAgdXBwZXIgPSBwcm9wKzEuOTYqcHJvcF9zZSkgJT4lIiwiZnVsbF9qb2luKG55YzMxMSwgYnkgPSBcImdlb19pZDJcIikgJT4lIiwic2VsZWN0KGdlb19pZDIsIGNvbnRhaW5zKFwiaGVhdFwiKSwgY29udGFpbnMoXCJwcm9wXCIpLCBsb3dlciwgdXBwZXIpICU+JSIsIm11dGF0ZShzYW1lID0gaXNzdWVfaGVhdCA+PSBsb3dlciAmIGlzc3VlX2hlYXQgPD0gdXBwZXIsIiwiICAgICAgIGhvd19kaWZmID0gY2FzZV93aGVuKGlzc3VlX2hlYXQgPCBsb3dlciB+IFwibGVzc19wcm9ibGVtc1wiLCIsIiAgICAgICAgICAgICAgICAgICAgICAgICAgICBpc3N1ZV9oZWF0ID4gdXBwZXIgfiBcIm1vcmVfcHJvYmxlbXNcIikpICU+JSIsImZpbHRlcihzYW1lID09IEZBTFNFIHwgaXMubmEoc2FtZSkpICU+JSIsImxlZnRfam9pbihwdW1hcywgYnkgPSBjKFwiZ2VvX2lkMlwiID0gXCJQVU1BNUlEXCIpKSIsIiIsInRhYmxlKG9iaiRob3dfZGlmZiwgdXNlTkEgPSBcImlmYW55XCIpIl19 -->
+<pre class="r"><code>obj &lt;-
+svy %&gt;%
+filter(renter, issue_heat) %&gt;%
+mutate(geo_id2 = as.factor(geo_id2)) %&gt;%
+group_by(geo_id2) %&gt;%
+summarise(prop = survey_mean()) %&gt;%
+mutate(lower = prop-1.96*prop_se,
+       upper = prop+1.96*prop_se) %&gt;%
+full_join(nyc311, by = &quot;geo_id2&quot;) %&gt;%
+select(geo_id2, contains(&quot;heat&quot;), contains(&quot;prop&quot;), lower, upper) %&gt;%
+mutate(same = issue_heat &gt;= lower &amp; issue_heat &lt;= upper,
+       how_diff = case_when(issue_heat &lt; lower ~ &quot;less_problems&quot;,
+                            issue_heat &gt; upper ~ &quot;more_problems&quot;)) %&gt;%
+filter(same == FALSE | is.na(same)) %&gt;%
+left_join(pumas, by = c(&quot;geo_id2&quot; = &quot;PUMA5ID&quot;))
+
+table(obj$how_diff, useNA = &quot;ifany&quot;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjpbIm9iaiA8LSIsInN2eSAlPiUiLCJmaWx0ZXIocmVudGVyLCBpc3N1ZV9wZXN0cykgJT4lIiwibXV0YXRlKGdlb19pZDIgPSBhcy5mYWN0b3IoZ2VvX2lkMikpICU+JSIsImdyb3VwX2J5KGdlb19pZDIpICU+JSIsInN1bW1hcmlzZShwcm9wID0gc3VydmV5X21lYW4oKSkgJT4lIiwibXV0YXRlKGxvd2VyID0gcHJvcC0xLjk2KnByb3Bfc2UsIiwiICAgICAgIHVwcGVyID0gcHJvcCsxLjk2KnByb3Bfc2UpICU+JSIsImZ1bGxfam9pbihueWMzMTEsIGJ5ID0gXCJnZW9faWQyXCIpICU+JSIsInNlbGVjdChnZW9faWQyLCBjb250YWlucyhcInBlc3RzXCIpLCBjb250YWlucyhcInByb3BcIiksIGxvd2VyLCB1cHBlcikgJT4lIiwibXV0YXRlKHNhbWUgPSBpc3N1ZV9wZXN0cyA+PSBsb3dlciAmIGlzc3VlX3Blc3RzIDw9IHVwcGVyLCIsIiAgICAgICBob3dfZGlmZiA9IGNhc2Vfd2hlbihpc3N1ZV9wZXN0cyA8IGxvd2VyIH4gXCJsZXNzX3Byb2JsZW1zXCIsIiwiICAgICAgICAgICAgICAgICAgICAgICAgICAgIGlzc3VlX3Blc3RzID4gdXBwZXIgfiBcIm1vcmVfcHJvYmxlbXNcIikpICU+JSIsImZpbHRlcihzYW1lID09IEZBTFNFIHwgaXMubmEoc2FtZSkpICU+JSIsImxlZnRfam9pbihwdW1hcywgYnkgPSBjKFwiZ2VvX2lkMlwiID0gXCJQVU1BNUlEXCIpKSIsIiIsInRhYmxlKG9iaiRob3dfZGlmZiwgdXNlTkEgPSBcImlmYW55XCIpIl19 -->
+<pre class="r"><code>obj &lt;-
+svy %&gt;%
+filter(renter, issue_pests) %&gt;%
+mutate(geo_id2 = as.factor(geo_id2)) %&gt;%
+group_by(geo_id2) %&gt;%
+summarise(prop = survey_mean()) %&gt;%
+mutate(lower = prop-1.96*prop_se,
+       upper = prop+1.96*prop_se) %&gt;%
+full_join(nyc311, by = &quot;geo_id2&quot;) %&gt;%
+select(geo_id2, contains(&quot;pests&quot;), contains(&quot;prop&quot;), lower, upper) %&gt;%
+mutate(same = issue_pests &gt;= lower &amp; issue_pests &lt;= upper,
+       how_diff = case_when(issue_pests &lt; lower ~ &quot;less_problems&quot;,
+                            issue_pests &gt; upper ~ &quot;more_problems&quot;)) %&gt;%
+filter(same == FALSE | is.na(same)) %&gt;%
+left_join(pumas, by = c(&quot;geo_id2&quot; = &quot;PUMA5ID&quot;))
+
+table(obj$how_diff, useNA = &quot;ifany&quot;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjpbIm9iaiA8LSIsInN2eSAlPiUiLCJmaWx0ZXIocmVudGVyLCBpc3N1ZV9wbGFzdGVycGFpbnQpICU+JSIsIm11dGF0ZShnZW9faWQyID0gYXMuZmFjdG9yKGdlb19pZDIpKSAlPiUiLCJncm91cF9ieShnZW9faWQyKSAlPiUiLCJzdW1tYXJpc2UocHJvcCA9IHN1cnZleV9tZWFuKCkpICU+JSIsIm11dGF0ZShsb3dlciA9IHByb3AtMS45Nipwcm9wX3NlLCIsIiAgICAgICB1cHBlciA9IHByb3ArMS45Nipwcm9wX3NlKSAlPiUiLCJmdWxsX2pvaW4obnljMzExLCBieSA9IFwiZ2VvX2lkMlwiKSAlPiUiLCJzZWxlY3QoZ2VvX2lkMiwgY29udGFpbnMoXCJwYWludFwiKSwgY29udGFpbnMoXCJwcm9wXCIpLCBsb3dlciwgdXBwZXIpICU+JSIsIm11dGF0ZShzYW1lID0gaXNzdWVfcGxhc3RlcnBhaW50ID49IGxvd2VyICYgaXNzdWVfcGxhc3RlcnBhaW50IDw9IHVwcGVyLCIsIiAgICAgICBob3dfZGlmZiA9IGNhc2Vfd2hlbihpc3N1ZV9wbGFzdGVycGFpbnQgPCBsb3dlciB+IFwibGVzc19wcm9ibGVtc1wiLCIsIiAgICAgICAgICAgICAgICAgICAgICAgICAgICBpc3N1ZV9wbGFzdGVycGFpbnQgPiB1cHBlciB+IFwibW9yZV9wcm9ibGVtc1wiKSkgJT4lIiwiZmlsdGVyKHNhbWUgPT0gRkFMU0UgfCBpcy5uYShzYW1lKSkgJT4lIiwibGVmdF9qb2luKHB1bWFzLCBieSA9IGMoXCJnZW9faWQyXCIgPSBcIlBVTUE1SURcIikpIiwiIiwidGFibGUob2JqJGhvd19kaWZmLCB1c2VOQSA9IFwiaWZhbnlcIikiXX0= -->
+<pre class="r"><code>obj &lt;-
+svy %&gt;%
+filter(renter, issue_plasterpaint) %&gt;%
+mutate(geo_id2 = as.factor(geo_id2)) %&gt;%
+group_by(geo_id2) %&gt;%
+summarise(prop = survey_mean()) %&gt;%
+mutate(lower = prop-1.96*prop_se,
+       upper = prop+1.96*prop_se) %&gt;%
+full_join(nyc311, by = &quot;geo_id2&quot;) %&gt;%
+select(geo_id2, contains(&quot;paint&quot;), contains(&quot;prop&quot;), lower, upper) %&gt;%
+mutate(same = issue_plasterpaint &gt;= lower &amp; issue_plasterpaint &lt;= upper,
+       how_diff = case_when(issue_plasterpaint &lt; lower ~ &quot;less_problems&quot;,
+                            issue_plasterpaint &gt; upper ~ &quot;more_problems&quot;)) %&gt;%
+filter(same == FALSE | is.na(same)) %&gt;%
+left_join(pumas, by = c(&quot;geo_id2&quot; = &quot;PUMA5ID&quot;))
+
+table(obj$how_diff, useNA = &quot;ifany&quot;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjpbIm9iaiA8LSIsInN2eSAlPiUiLCJmaWx0ZXIocmVudGVyLCBpc3N1ZV9sZWFrKSAlPiUiLCJtdXRhdGUoZ2VvX2lkMiA9IGFzLmZhY3RvcihnZW9faWQyKSkgJT4lIiwiZ3JvdXBfYnkoZ2VvX2lkMikgJT4lIiwic3VtbWFyaXNlKHByb3AgPSBzdXJ2ZXlfbWVhbigpKSAlPiUiLCJtdXRhdGUobG93ZXIgPSBwcm9wLTEuOTYqcHJvcF9zZSwiLCIgICAgICAgdXBwZXIgPSBwcm9wKzEuOTYqcHJvcF9zZSkgJT4lIiwiZnVsbF9qb2luKG55YzMxMSwgYnkgPSBcImdlb19pZDJcIikgJT4lIiwic2VsZWN0KGdlb19pZDIsIGNvbnRhaW5zKFwibGVha1wiKSwgY29udGFpbnMoXCJwcm9wXCIpLCBsb3dlciwgdXBwZXIpICU+JSIsIm11dGF0ZShzYW1lID0gaXNzdWVfbGVhayA+PSBsb3dlciAmIGlzc3VlX2xlYWsgPD0gdXBwZXIsIiwiICAgICAgIGhvd19kaWZmID0gY2FzZV93aGVuKGlzc3VlX2xlYWsgPCBsb3dlciB+IFwibGVzc19wcm9ibGVtc1wiLCIsIiAgICAgICAgICAgICAgICAgICAgICAgICAgICBpc3N1ZV9sZWFrID4gdXBwZXIgfiBcIm1vcmVfcHJvYmxlbXNcIikpICU+JSIsImZpbHRlcihzYW1lID09IEZBTFNFIHwgaXMubmEoc2FtZSkpICU+JSIsImxlZnRfam9pbihwdW1hcywgYnkgPSBjKFwiZ2VvX2lkMlwiID0gXCJQVU1BNUlEXCIpKSIsIiIsInRhYmxlKG9iaiRob3dfZGlmZiwgdXNlTkEgPSBcImlmYW55XCIpICJdfQ== -->
+<pre class="r"><code>obj &lt;-
+svy %&gt;%
+filter(renter, issue_leak) %&gt;%
+mutate(geo_id2 = as.factor(geo_id2)) %&gt;%
+group_by(geo_id2) %&gt;%
+summarise(prop = survey_mean()) %&gt;%
+mutate(lower = prop-1.96*prop_se,
+       upper = prop+1.96*prop_se) %&gt;%
+full_join(nyc311, by = &quot;geo_id2&quot;) %&gt;%
+select(geo_id2, contains(&quot;leak&quot;), contains(&quot;prop&quot;), lower, upper) %&gt;%
+mutate(same = issue_leak &gt;= lower &amp; issue_leak &lt;= upper,
+       how_diff = case_when(issue_leak &lt; lower ~ &quot;less_problems&quot;,
+                            issue_leak &gt; upper ~ &quot;more_problems&quot;)) %&gt;%
+filter(same == FALSE | is.na(same)) %&gt;%
+left_join(pumas, by = c(&quot;geo_id2&quot; = &quot;PUMA5ID&quot;))
+
+table(obj$how_diff, useNA = &quot;ifany&quot;) </code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+
+<div id="rmd-source-code">LS0tCnRpdGxlOiAiUiBOb3RlYm9vayIKb3V0cHV0OiBodG1sX25vdGVib29rCi0tLQpgYGB7cn0KbGlicmFyeShzdXJ2ZXkpCmxpYnJhcnkoc3J2eXIpCmBgYAoKYGBge3J9CnJtKGxpc3QgPSBscygpKQpueWNodnMgPC0gcmVhZF9yZHMoIi4uLy4uL2RhdGEvb3V0cHV0L255Y2h2cy9ueWNodnMyMDE3LnJkcyIpCm55YzMxMSA8LSByZWFkX3JkcygiLi4vLi4vZGF0YS9vdXRwdXQvbnljMzExLzAzLW55YzMxMV9jb21wbGFpbnRYc3ViYm9yb1BST1AucmRzIikKcHVtYXMgPC0gcmVhZF9leGNlbCgiLi4vLi4vZGF0YS9pbnB1dC9saW5raW5nL255Y19wdW1hX25laWdoYm9yaG9vZC54bHMiKQpgYGAKCmNyZWF0ZSBhbiBhcHByb3ByaWF0ZSBkZXNpZ24gb2JqZWN0IHRoYXQgY29udGFpbnMgdGhlIGRhdGEgdmFyaWFibGVzIGFuZCB0aGUgcmVwbGljYXRpb24gd2VpZ2h0cyBtZXRhZGF0YSBuZWVkZWQgZm9yIHZhbGlkIGVzdGltYXRpb24KYGBge3J9CnN2eSA8LSBzdnJlcGRlc2lnbih2YXJpYWJsZXMgPSBueWNodnNbICxzZXEoMTkpXSwgCiAgICAgICAgICAgICAgICAgICAgcmVwd2VpZ2h0cyA9IG55Y2h2c1sgLHBhc3RlMCgiRlciLCBzZXEoODApKV0sCiAgICAgICAgICAgICAgICAgICAgd2VpZ2h0cyA9IH5oaHdlaWdodCwKICAgICAgICAgICAgICAgICAgICBjb21iaW5lZC53ZWlnaHRzPVRSVUUsCiAgICAgICAgICAgICAgICAgICAgdHlwZT0iRmF5IiwKICAgICAgICAgICAgICAgICAgICByaG8gPSAoMS0xL3NxcnQoNCkpLAogICAgICAgICAgICAgICAgICAgIHNjYWxlID0gNC84MCwKICAgICAgICAgICAgICAgICAgICByc2NhbGVzID0gcmVwKDEsODApLAogICAgICAgICAgICAgICAgICAgIGRhdGEgPSBueWNodnMpICU+JQogICAgICBhc19zdXJ2ZXlfcmVwKCkKYGBgCgpgYGB7cn0Kb2JqIDwtCnN2eSAlPiUKZmlsdGVyKHJlbnRlciwgaXNzdWVfc3RhaXJ3YXkpICU+JQptdXRhdGUoZ2VvX2lkMiA9IGFzLmZhY3RvcihnZW9faWQyKSkgJT4lCmdyb3VwX2J5KGdlb19pZDIpICU+JQpzdW1tYXJpc2UoZmxvb3JzX3Byb3AgPSBzdXJ2ZXlfbWVhbigpKSAlPiUKbXV0YXRlKGxvd2VyID0gZmxvb3JzX3Byb3AtMS45NipmbG9vcnNfcHJvcF9zZSwKICAgICAgIHVwcGVyID0gZmxvb3JzX3Byb3ArMS45NipmbG9vcnNfcHJvcF9zZSkgJT4lCmZ1bGxfam9pbihueWMzMTEsIGJ5ID0gImdlb19pZDIiKSAlPiUKc2VsZWN0KGdlb19pZDIsIGNvbnRhaW5zKCJzdGFpciIpLCBsb3dlciwgdXBwZXIpICU+JQptdXRhdGUoc2FtZSA9IGlzc3VlX3N0YWlyd2F5ID49IGxvd2VyICYgaXNzdWVfc3RhaXJ3YXkgPD0gdXBwZXIsCiAgICAgICBob3dfZGlmZiA9IGNhc2Vfd2hlbihpc3N1ZV9zdGFpcndheSA8IGxvd2VyIH4gImxlc3NfcHJvYmxlbXMiLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgaXNzdWVfc3RhaXJ3YXkgPiB1cHBlciB+ICJtb3JlX3Byb2JsZW1zIikpICU+JQpmaWx0ZXIoc2FtZSA9PSBGQUxTRSB8IGlzLm5hKHNhbWUpKSAlPiUKbGVmdF9qb2luKHB1bWFzLCBieSA9IGMoImdlb19pZDIiID0gIlBVTUE1SUQiKSkKCnRhYmxlKG9iaiRob3dfZGlmZiwgdXNlTkEgPSAiaWZhbnkiKQpgYGAKCmBgYHtyfQpvYmogPC0Kc3Z5ICU+JQpmaWx0ZXIocmVudGVyLCBpc3N1ZV9mbG9vcnMpICU+JQptdXRhdGUoZ2VvX2lkMiA9IGFzLmZhY3RvcihnZW9faWQyKSkgJT4lCmdyb3VwX2J5KGdlb19pZDIpICU+JQpzdW1tYXJpc2UoZmxvb3JzX3Byb3AgPSBzdXJ2ZXlfbWVhbigpKSAlPiUKbXV0YXRlKGxvd2VyID0gZmxvb3JzX3Byb3AtMS45NipmbG9vcnNfcHJvcF9zZSwKICAgICAgIHVwcGVyID0gZmxvb3JzX3Byb3ArMS45NipmbG9vcnNfcHJvcF9zZSkgJT4lCmZ1bGxfam9pbihueWMzMTEsIGJ5ID0gImdlb19pZDIiKSAlPiUKc2VsZWN0KGdlb19pZDIsIGNvbnRhaW5zKCJmbG9vcnMiKSwgbG93ZXIsIHVwcGVyKSAlPiUKbXV0YXRlKHNhbWUgPSBpc3N1ZV9mbG9vcnMgPj0gbG93ZXIgJiBpc3N1ZV9mbG9vcnMgPD0gdXBwZXIsCiAgICAgICBob3dfZGlmZiA9IGNhc2Vfd2hlbihpc3N1ZV9mbG9vcnMgPCBsb3dlciB+ICJsZXNzX3Byb2JsZW1zIiwKICAgICAgICAgICAgICAgICAgICAgICAgICAgIGlzc3VlX2Zsb29ycyA+IHVwcGVyIH4gIm1vcmVfcHJvYmxlbXMiKSkgJT4lCmZpbHRlcihzYW1lID09IEZBTFNFIHwgaXMubmEoc2FtZSkpICU+JQpsZWZ0X2pvaW4ocHVtYXMsIGJ5ID0gYygiZ2VvX2lkMiIgPSAiUFVNQTVJRCIpKQoKdGFibGUob2JqJGhvd19kaWZmLCB1c2VOQSA9ICJpZmFueSIpCmBgYAoKYGBge3J9Cm9iaiA8LQpzdnkgJT4lCmZpbHRlcihyZW50ZXIsIGlzc3VlX3RvaWxldCkgJT4lCm11dGF0ZShnZW9faWQyID0gYXMuZmFjdG9yKGdlb19pZDIpKSAlPiUKZ3JvdXBfYnkoZ2VvX2lkMikgJT4lCnN1bW1hcmlzZShwcm9wID0gc3VydmV5X21lYW4oKSkgJT4lCm11dGF0ZShsb3dlciA9IHByb3AtMS45Nipwcm9wX3NlLAogICAgICAgdXBwZXIgPSBwcm9wKzEuOTYqcHJvcF9zZSkgJT4lCmZ1bGxfam9pbihueWMzMTEsIGJ5ID0gImdlb19pZDIiKSAlPiUKc2VsZWN0KGdlb19pZDIsIGNvbnRhaW5zKCJ0b2lsZXQiKSwgY29udGFpbnMoInByb3AiKSwgbG93ZXIsIHVwcGVyKSAlPiUKbXV0YXRlKHNhbWUgPSBpc3N1ZV90b2lsZXQgPj0gbG93ZXIgJiBpc3N1ZV90b2lsZXQgPD0gdXBwZXIsCiAgICAgICBob3dfZGlmZiA9IGNhc2Vfd2hlbihpc3N1ZV90b2lsZXQgPCBsb3dlciB+ICJsZXNzX3Byb2JsZW1zIiwKICAgICAgICAgICAgICAgICAgICAgICAgICAgIGlzc3VlX3RvaWxldCA+IHVwcGVyIH4gIm1vcmVfcHJvYmxlbXMiKSkgJT4lCmZpbHRlcihzYW1lID09IEZBTFNFIHwgaXMubmEoc2FtZSkpICU+JQpsZWZ0X2pvaW4ocHVtYXMsIGJ5ID0gYygiZ2VvX2lkMiIgPSAiUFVNQTVJRCIpKQoKdGFibGUob2JqJGhvd19kaWZmLCB1c2VOQSA9ICJpZmFueSIpCmBgYAoKYGBge3J9Cm9iaiA8LQpzdnkgJT4lCmZpbHRlcihyZW50ZXIsIGlzc3VlX2hlYXQpICU+JQptdXRhdGUoZ2VvX2lkMiA9IGFzLmZhY3RvcihnZW9faWQyKSkgJT4lCmdyb3VwX2J5KGdlb19pZDIpICU+JQpzdW1tYXJpc2UocHJvcCA9IHN1cnZleV9tZWFuKCkpICU+JQptdXRhdGUobG93ZXIgPSBwcm9wLTEuOTYqcHJvcF9zZSwKICAgICAgIHVwcGVyID0gcHJvcCsxLjk2KnByb3Bfc2UpICU+JQpmdWxsX2pvaW4obnljMzExLCBieSA9ICJnZW9faWQyIikgJT4lCnNlbGVjdChnZW9faWQyLCBjb250YWlucygiaGVhdCIpLCBjb250YWlucygicHJvcCIpLCBsb3dlciwgdXBwZXIpICU+JQptdXRhdGUoc2FtZSA9IGlzc3VlX2hlYXQgPj0gbG93ZXIgJiBpc3N1ZV9oZWF0IDw9IHVwcGVyLAogICAgICAgaG93X2RpZmYgPSBjYXNlX3doZW4oaXNzdWVfaGVhdCA8IGxvd2VyIH4gImxlc3NfcHJvYmxlbXMiLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgaXNzdWVfaGVhdCA+IHVwcGVyIH4gIm1vcmVfcHJvYmxlbXMiKSkgJT4lCmZpbHRlcihzYW1lID09IEZBTFNFIHwgaXMubmEoc2FtZSkpICU+JQpsZWZ0X2pvaW4ocHVtYXMsIGJ5ID0gYygiZ2VvX2lkMiIgPSAiUFVNQTVJRCIpKQoKdGFibGUob2JqJGhvd19kaWZmLCB1c2VOQSA9ICJpZmFueSIpCmBgYAoKYGBge3J9Cm9iaiA8LQpzdnkgJT4lCmZpbHRlcihyZW50ZXIsIGlzc3VlX3Blc3RzKSAlPiUKbXV0YXRlKGdlb19pZDIgPSBhcy5mYWN0b3IoZ2VvX2lkMikpICU+JQpncm91cF9ieShnZW9faWQyKSAlPiUKc3VtbWFyaXNlKHByb3AgPSBzdXJ2ZXlfbWVhbigpKSAlPiUKbXV0YXRlKGxvd2VyID0gcHJvcC0xLjk2KnByb3Bfc2UsCiAgICAgICB1cHBlciA9IHByb3ArMS45Nipwcm9wX3NlKSAlPiUKZnVsbF9qb2luKG55YzMxMSwgYnkgPSAiZ2VvX2lkMiIpICU+JQpzZWxlY3QoZ2VvX2lkMiwgY29udGFpbnMoInBlc3RzIiksIGNvbnRhaW5zKCJwcm9wIiksIGxvd2VyLCB1cHBlcikgJT4lCm11dGF0ZShzYW1lID0gaXNzdWVfcGVzdHMgPj0gbG93ZXIgJiBpc3N1ZV9wZXN0cyA8PSB1cHBlciwKICAgICAgIGhvd19kaWZmID0gY2FzZV93aGVuKGlzc3VlX3Blc3RzIDwgbG93ZXIgfiAibGVzc19wcm9ibGVtcyIsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICBpc3N1ZV9wZXN0cyA+IHVwcGVyIH4gIm1vcmVfcHJvYmxlbXMiKSkgJT4lCmZpbHRlcihzYW1lID09IEZBTFNFIHwgaXMubmEoc2FtZSkpICU+JQpsZWZ0X2pvaW4ocHVtYXMsIGJ5ID0gYygiZ2VvX2lkMiIgPSAiUFVNQTVJRCIpKQoKdGFibGUob2JqJGhvd19kaWZmLCB1c2VOQSA9ICJpZmFueSIpCmBgYAoKYGBge3J9Cm9iaiA8LQpzdnkgJT4lCmZpbHRlcihyZW50ZXIsIGlzc3VlX3BsYXN0ZXJwYWludCkgJT4lCm11dGF0ZShnZW9faWQyID0gYXMuZmFjdG9yKGdlb19pZDIpKSAlPiUKZ3JvdXBfYnkoZ2VvX2lkMikgJT4lCnN1bW1hcmlzZShwcm9wID0gc3VydmV5X21lYW4oKSkgJT4lCm11dGF0ZShsb3dlciA9IHByb3AtMS45Nipwcm9wX3NlLAogICAgICAgdXBwZXIgPSBwcm9wKzEuOTYqcHJvcF9zZSkgJT4lCmZ1bGxfam9pbihueWMzMTEsIGJ5ID0gImdlb19pZDIiKSAlPiUKc2VsZWN0KGdlb19pZDIsIGNvbnRhaW5zKCJwYWludCIpLCBjb250YWlucygicHJvcCIpLCBsb3dlciwgdXBwZXIpICU+JQptdXRhdGUoc2FtZSA9IGlzc3VlX3BsYXN0ZXJwYWludCA+PSBsb3dlciAmIGlzc3VlX3BsYXN0ZXJwYWludCA8PSB1cHBlciwKICAgICAgIGhvd19kaWZmID0gY2FzZV93aGVuKGlzc3VlX3BsYXN0ZXJwYWludCA8IGxvd2VyIH4gImxlc3NfcHJvYmxlbXMiLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgaXNzdWVfcGxhc3RlcnBhaW50ID4gdXBwZXIgfiAibW9yZV9wcm9ibGVtcyIpKSAlPiUKZmlsdGVyKHNhbWUgPT0gRkFMU0UgfCBpcy5uYShzYW1lKSkgJT4lCmxlZnRfam9pbihwdW1hcywgYnkgPSBjKCJnZW9faWQyIiA9ICJQVU1BNUlEIikpCgp0YWJsZShvYmokaG93X2RpZmYsIHVzZU5BID0gImlmYW55IikKYGBgCgpgYGB7cn0Kb2JqIDwtCnN2eSAlPiUKZmlsdGVyKHJlbnRlciwgaXNzdWVfbGVhaykgJT4lCm11dGF0ZShnZW9faWQyID0gYXMuZmFjdG9yKGdlb19pZDIpKSAlPiUKZ3JvdXBfYnkoZ2VvX2lkMikgJT4lCnN1bW1hcmlzZShwcm9wID0gc3VydmV5X21lYW4oKSkgJT4lCm11dGF0ZShsb3dlciA9IHByb3AtMS45Nipwcm9wX3NlLAogICAgICAgdXBwZXIgPSBwcm9wKzEuOTYqcHJvcF9zZSkgJT4lCmZ1bGxfam9pbihueWMzMTEsIGJ5ID0gImdlb19pZDIiKSAlPiUKc2VsZWN0KGdlb19pZDIsIGNvbnRhaW5zKCJsZWFrIiksIGNvbnRhaW5zKCJwcm9wIiksIGxvd2VyLCB1cHBlcikgJT4lCm11dGF0ZShzYW1lID0gaXNzdWVfbGVhayA+PSBsb3dlciAmIGlzc3VlX2xlYWsgPD0gdXBwZXIsCiAgICAgICBob3dfZGlmZiA9IGNhc2Vfd2hlbihpc3N1ZV9sZWFrIDwgbG93ZXIgfiAibGVzc19wcm9ibGVtcyIsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICBpc3N1ZV9sZWFrID4gdXBwZXIgfiAibW9yZV9wcm9ibGVtcyIpKSAlPiUKZmlsdGVyKHNhbWUgPT0gRkFMU0UgfCBpcy5uYShzYW1lKSkgJT4lCmxlZnRfam9pbihwdW1hcywgYnkgPSBjKCJnZW9faWQyIiA9ICJQVU1BNUlEIikpCgp0YWJsZShvYmokaG93X2RpZmYsIHVzZU5BID0gImlmYW55IikgCmBgYAoKCg==</div>
 
 
 

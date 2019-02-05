@@ -28,7 +28,8 @@ df <- read_csv(nychvs2017)[-1,] %>%
              housing_public = csrr == 5) %>%
       select(seqn, borough, sub, sba, geo_id2, starts_with("issue"), 
              renter, housing_public, hhweight, starts_with("FW")) %>% 
-      modify_at(c("hhweight", paste0("FW", 1:80)), as.integer) 
+      modify_at(c("hhweight", paste0("FW", 1:80)), as.integer) %>% 
+      modify_at(c("hhweight", paste0("FW", 1:80)), function(x){x*.00001}) 
 ```
 
 join in additional information about sub-boroughs (ie pumas)      
