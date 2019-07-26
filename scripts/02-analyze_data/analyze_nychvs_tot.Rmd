@@ -3,18 +3,19 @@ title: "R Notebook"
 output: html_notebook
 ---
 ```{r}
+library(tidyverse)
+library(readxl)
 library(survey)
 library(srvyr)
 ```
 
 ```{r}
-rm(list = ls())
 nychvs <- read_rds("../../data/output/nychvs/nychvs2017.rds")
 nyc311 <- read_rds("../../data/output/nyc311/02-nyc311_complaintXsubboro.rds")
 pumas <- read_excel("../../data/input/linking/nyc_puma_neighborhood.xls")
 ```
 
-create an appropriate design object that contains the data variables and the replication weights metadata needed for valid estimation
+create an aptotriate design object that contains the data variables and the replication weights metadata needed for valid estimation
 ```{r}
 svy <- svrepdesign(variables = nychvs[ ,seq(19)], 
                     repweights = nychvs[ ,paste0("FW", seq(80))],
@@ -29,16 +30,21 @@ svy <- svrepdesign(variables = nychvs[ ,seq(19)],
 ```
 
 ```{r}
+alpha <- .05/(nrow(pumas)*7)
+zscore <- qnorm(1-alpha/2)
+```
+
+```{r issue_stairway}
 obj <-
 svy %>%
 filter(renter, issue_stairway) %>%
 mutate(geo_id2 = as.factor(geo_id2)) %>%
 group_by(geo_id2) %>%
-summarise(prop = survey_total(issue_stairway)) %>%
-mutate(lower = prop-1.96*prop_se,
-       upper = prop+1.96*prop_se) %>%
+summarise(tot = survey_total(issue_stairway)) %>%
+mutate(lower = tot-zscore*tot_se,
+       upper = tot+zscore*tot_se) %>%
 full_join(nyc311, by = "geo_id2") %>%
-select(geo_id2, contains("stair"), contains("prop"), lower, upper) %>%
+select(geo_id2, contains("stair"), contains("tot"), lower, upper) %>%
 mutate(same = issue_stairway >= lower & issue_stairway <= upper,
        how_diff = case_when(issue_stairway < lower ~ "less_problems",
                             issue_stairway > upper ~ "more_problems")) %>%
@@ -48,15 +54,15 @@ left_join(pumas, by = c("geo_id2" = "PUMA5ID"))
 table(obj$how_diff, useNA = "ifany")
 ```
 
-```{r}
+```{r issue_floors}
 obj <-
 svy %>%
 filter(renter, issue_floors) %>%
 mutate(geo_id2 = as.factor(geo_id2)) %>%
 group_by(geo_id2) %>%
-summarise(floors_prop = survey_total(issue_floors)) %>%
-mutate(lower = floors_prop-1.96*floors_prop_se,
-       upper = floors_prop+1.96*floors_prop_se) %>%
+summarise(floors_tot = survey_total(issue_floors)) %>%
+mutate(lower = floors_tot-zscore*floors_tot_se,
+       upper = floors_tot+zscore*floors_tot_se) %>%
 full_join(nyc311, by = "geo_id2") %>%
 select(geo_id2, contains("floors"), lower, upper) %>%
 mutate(same = issue_floors >= lower & issue_floors <= upper,
@@ -68,17 +74,17 @@ left_join(pumas, by = c("geo_id2" = "PUMA5ID"))
 table(obj$how_diff, useNA = "ifany")
 ```
 
-```{r}
+```{r issue_toilet}
 obj <-
 svy %>%
 filter(renter, issue_toilet) %>%
 mutate(geo_id2 = as.factor(geo_id2)) %>%
 group_by(geo_id2) %>%
-summarise(prop = survey_total(issue_toilet)) %>%
-mutate(lower = prop-1.96*prop_se,
-       upper = prop+1.96*prop_se) %>%
+summarise(tot = survey_total(issue_toilet)) %>%
+mutate(lower = tot-zscore*tot_se,
+       upper = tot+zscore*tot_se) %>%
 full_join(nyc311, by = "geo_id2") %>%
-select(geo_id2, contains("toilet"), contains("prop"), lower, upper) %>%
+select(geo_id2, contains("toilet"), contains("tot"), lower, upper) %>%
 mutate(same = issue_toilet >= lower & issue_toilet <= upper,
        how_diff = case_when(issue_toilet < lower ~ "less_problems",
                             issue_toilet > upper ~ "more_problems")) %>%
@@ -88,17 +94,17 @@ left_join(pumas, by = c("geo_id2" = "PUMA5ID"))
 table(obj$how_diff, useNA = "ifany")
 ```
 
-```{r}
+```{r issue_heat}
 obj <-
 svy %>%
 filter(renter, issue_heat) %>%
 mutate(geo_id2 = as.factor(geo_id2)) %>%
 group_by(geo_id2) %>%
-summarise(prop = survey_total(issue_toilet)) %>%
-mutate(lower = prop-1.96*prop_se,
-       upper = prop+1.96*prop_se) %>%
+summarise(tot = survey_total(issue_toilet)) %>%
+mutate(lower = tot-zscore*tot_se,
+       upper = tot+zscore*tot_se) %>%
 full_join(nyc311, by = "geo_id2") %>%
-select(geo_id2, contains("heat"), contains("prop"), lower, upper) %>%
+select(geo_id2, contains("heat"), contains("tot"), lower, upper) %>%
 mutate(same = issue_heat >= lower & issue_heat <= upper,
        how_diff = case_when(issue_heat < lower ~ "less_problems",
                             issue_heat > upper ~ "more_problems")) %>%
@@ -108,17 +114,17 @@ left_join(pumas, by = c("geo_id2" = "PUMA5ID"))
 table(obj$how_diff, useNA = "ifany")
 ```
 
-```{r}
+```{r issue_pests}
 obj <-
 svy %>%
 filter(renter, issue_pests) %>%
 mutate(geo_id2 = as.factor(geo_id2)) %>%
 group_by(geo_id2) %>%
-summarise(prop = survey_total(issue_pests)) %>%
-mutate(lower = prop-1.96*prop_se,
-       upper = prop+1.96*prop_se) %>%
+summarise(tot = survey_total(issue_pests)) %>%
+mutate(lower = tot-zscore*tot_se,
+       upper = tot+zscore*tot_se) %>%
 full_join(nyc311, by = "geo_id2") %>%
-select(geo_id2, contains("pests"), contains("prop"), lower, upper) %>%
+select(geo_id2, contains("pests"), contains("tot"), lower, upper) %>%
 mutate(same = issue_pests >= lower & issue_pests <= upper,
        how_diff = case_when(issue_pests < lower ~ "less_problems",
                             issue_pests > upper ~ "more_problems")) %>%
@@ -128,17 +134,17 @@ left_join(pumas, by = c("geo_id2" = "PUMA5ID"))
 table(obj$how_diff, useNA = "ifany")
 ```
 
-```{r}
+```{r issue_plasterpaint}
 obj <-
 svy %>%
 filter(renter, issue_plasterpaint) %>%
 mutate(geo_id2 = as.factor(geo_id2)) %>%
 group_by(geo_id2) %>%
-summarise(prop = survey_total(issue_pests)) %>%
-mutate(lower = prop-1.96*prop_se,
-       upper = prop+1.96*prop_se) %>%
+summarise(tot = survey_total(issue_pests)) %>%
+mutate(lower = tot-zscore*tot_se,
+       upper = tot+zscore*tot_se) %>%
 full_join(nyc311, by = "geo_id2") %>%
-select(geo_id2, contains("paint"), contains("prop"), lower, upper) %>%
+select(geo_id2, contains("paint"), contains("tot"), lower, upper) %>%
 mutate(same = issue_plasterpaint >= lower & issue_plasterpaint <= upper,
        how_diff = case_when(issue_plasterpaint < lower ~ "less_problems",
                             issue_plasterpaint > upper ~ "more_problems")) %>%
@@ -148,17 +154,17 @@ left_join(pumas, by = c("geo_id2" = "PUMA5ID"))
 table(obj$how_diff, useNA = "ifany")
 ```
 
-```{r}
+```{r issue_leak}
 obj <-
 svy %>%
 filter(renter, issue_leak) %>%
 mutate(geo_id2 = as.factor(geo_id2)) %>%
 group_by(geo_id2) %>%
-summarise(prop = survey_total(issue_leak)) %>%
-mutate(lower = prop-1.96*prop_se,
-       upper = prop+1.96*prop_se) %>%
+summarise(tot = survey_total(issue_leak)) %>%
+mutate(lower = tot-zscore*tot_se,
+       upper = tot+zscore*tot_se) %>%
 full_join(nyc311, by = "geo_id2") %>%
-select(geo_id2, contains("leak"), contains("prop"), lower, upper) %>%
+select(geo_id2, contains("leak"), contains("tot"), lower, upper) %>%
 mutate(same = issue_leak >= lower & issue_leak <= upper,
        how_diff = case_when(issue_leak < lower ~ "less_problems",
                             issue_leak > upper ~ "more_problems")) %>%
