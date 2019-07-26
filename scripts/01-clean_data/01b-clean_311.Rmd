@@ -103,23 +103,13 @@ df2 <- df1 %>%
        mutate(geo_id2 = paste0(state_code, PUMA5CE)) %>%
        group_by(geo_id2) %>%
        summarise_at(vars(starts_with("issue")), funs(sum(.))) %>%
-       arrange(geo_id2)
+       arrange(geo_id2) %>%
+       ungroup()
 ```
 
 ```{r}
 write_csv(df2, "../../data/output/nyc311/02-nyc311_complaintXsubboro.csv")
 saveRDS(df2, "../../data/output/nyc311/02-nyc311_complaintXsubboro.rds")
-```
-
-prepare 311 data go be joined with nychvs data
-```{r}
-df3 <- df1 %>%
-       mutate(geo_id2 = paste0(state_code, PUMA5CE)) %>%
-       group_by(geo_id2) %>%
-       summarise_at(vars(starts_with("issue")), funs(mean(.))) %>%
-       arrange(geo_id2)
-write_csv(df3, "../../data/output/nyc311/03-nyc311_complaintXsubboroPROP.csv")
-saveRDS(df3, "../../data/output/nyc311/03-nyc311_complaintXsubboroPROP.rds")
 ```
 
 ********************************************************************************
