@@ -7,6 +7,8 @@ library(tidyverse)
 library(readxl)
 library(survey)
 library(srvyr)
+
+library(janitor)
 ```
 
 ```{r}
@@ -55,154 +57,52 @@ nhst <- function(df_svy = svy, df_311 = nyc311, issue_type){
 
 
 ```{r issue_stairway}
-obj <-
-svy %>%
-filter(renter, issue_stairway) %>%
-mutate(geo_id2 = as.factor(geo_id2)) %>%
-group_by(geo_id2) %>%
-summarise(tot = survey_total(issue_stairway)) %>%
-mutate(lower = tot-zscore*tot_se,
-       upper = tot+zscore*tot_se) %>%
-full_join(nyc311, by = "geo_id2") %>%
-select(geo_id2, contains("stair"), contains("tot"), lower, upper) %>%
-mutate(same = issue_stairway >= lower & issue_stairway <= upper,
-       conclusion = case_when(issue_stairway < lower ~ "underreported_to_311",
-                            issue_stairway > upper ~ "overreported_to_311")) %>%
-filter(same == FALSE | is.na(same)) %>%
-left_join(pumas, by = c("geo_id2" = "PUMA5ID"))
-
-table(obj$conclusion, useNA = "ifany")
-
 issue_stairway <- nhst(issue_type = issue_stairway) %>% mutate(issue = "stairway")
+
+count(issue_stairway, conclusion)
 ```
 
 ```{r issue_floors}
-obj <-
-svy %>%
-filter(renter, issue_floors) %>%
-mutate(geo_id2 = as.factor(geo_id2)) %>%
-group_by(geo_id2) %>%
-summarise(floors_tot = survey_total(issue_floors)) %>%
-mutate(lower = floors_tot-zscore*floors_tot_se,
-       upper = floors_tot+zscore*floors_tot_se) %>%
-full_join(nyc311, by = "geo_id2") %>%
-select(geo_id2, contains("floors"), lower, upper) %>%
-mutate(same = issue_floors >= lower & issue_floors <= upper,
-       conclusion = case_when(issue_floors < lower ~ "underreported_to_311",
-                            issue_floors > upper ~ "overreported_to_311")) %>%
-filter(same == FALSE | is.na(same)) %>%
-left_join(pumas, by = c("geo_id2" = "PUMA5ID"))
-
-table(obj$conclusion, useNA = "ifany")
-
 issue_floors <- nhst(issue_type = issue_floors) %>% mutate(issue = "floors")
+
+count(issue_floors, conclusion)
 ```
 
 ```{r issue_toilet}
-obj <-
-svy %>%
-filter(renter, issue_toilet) %>%
-group_by(geo_id2) %>%
-summarise(tot = survey_total(issue_toilet)) %>%
-mutate(lower = tot-zscore*tot_se,
-       upper = tot+zscore*tot_se) %>%
-full_join(nyc311, by = "geo_id2") %>%
-select(geo_id2, contains("toilet"), contains("tot"), lower, upper) %>%
-mutate(conclusion = case_when(issue_toilet < lower ~ "underreported_to_311",
-                            issue_toilet > upper ~ "overreported_to_311")) %>%
-left_join(pumas, by = c("geo_id2" = "PUMA5ID"))
-
-table(obj$conclusion, useNA = "ifany")
-
 issue_toilet <- nhst(issue_type = issue_toilet) %>% mutate(issue = "toilet")
+
+count(issue_toilet, conclusion)
 ```
 
 ```{r issue_heat}
-obj <-
-svy %>%
-filter(renter, issue_heat) %>%
-mutate(geo_id2 = as.factor(geo_id2)) %>%
-group_by(geo_id2) %>%
-summarise(tot = survey_total(issue_toilet)) %>%
-mutate(lower = tot-zscore*tot_se,
-       upper = tot+zscore*tot_se) %>%
-full_join(nyc311, by = "geo_id2") %>%
-select(geo_id2, contains("heat"), contains("tot"), lower, upper) %>%
-mutate(same = issue_heat >= lower & issue_heat <= upper,
-       conclusion = case_when(issue_heat < lower ~ "underreported_to_311",
-                            issue_heat > upper ~ "overreported_to_311")) %>%
-filter(same == FALSE | is.na(same)) %>%
-left_join(pumas, by = c("geo_id2" = "PUMA5ID"))
-
-table(obj$conclusion, useNA = "ifany")
-
 issue_heat <- nhst(issue_type = issue_heat) %>% mutate(issue = "heat")
+
+count(issue_heat, conclusion)
 ```
 
 ```{r issue_pests}
-obj <-
-svy %>%
-filter(renter, issue_pests) %>%
-mutate(geo_id2 = as.factor(geo_id2)) %>%
-group_by(geo_id2) %>%
-summarise(tot = survey_total(issue_pests)) %>%
-mutate(lower = tot-zscore*tot_se,
-       upper = tot+zscore*tot_se) %>%
-full_join(nyc311, by = "geo_id2") %>%
-select(geo_id2, contains("pests"), contains("tot"), lower, upper) %>%
-mutate(same = issue_pests >= lower & issue_pests <= upper,
-       conclusion = case_when(issue_pests < lower ~ "underreported_to_311",
-                            issue_pests > upper ~ "overreported_to_311")) %>%
-filter(same == FALSE | is.na(same)) %>%
-left_join(pumas, by = c("geo_id2" = "PUMA5ID"))
-
-table(obj$conclusion, useNA = "ifany")
-
 issue_pests <- nhst(issue_type = issue_pests) %>% mutate(issue = "pests")
+
+count(issue_pests, conclusion)
 ```
 
 ```{r issue_plasterpaint}
-obj <-
-svy %>%
-filter(renter, issue_plasterpaint) %>%
-group_by(geo_id2) %>%
-summarise(tot = survey_total(issue_plasterpaint)) %>%
-mutate(issue = "issue_plasterpaint", 
-       lower = tot-zscore*tot_se,
-       upper = tot+zscore*tot_se) %>%
-full_join(nyc311, by = "geo_id2") %>%
-mutate(conclusion = case_when(issue_plasterpaint < lower ~ "underreported_to_311",
-                            issue_plasterpaint > upper ~ "overreported_to_311",
-                            TRUE ~ "within_expectation")) %>%
-left_join(pumas, by = c("geo_id2" = "PUMA5ID")) %>%
-select(geo_id2:upper, conclusion:PUMA_2010)
+issue_plasterpaint <- nhst(issue = issue_plasterpaint) %>% mutate(issue = "plasterpaint")
 
-
-issue_plasterpaint <- nhst(issue = issue_plasterpaint) %>% mutate(issue = "plasterpaint") %>% View()
-table(obj$conclusion, useNA = "ifany")
-
+count(issue_plasterpaint, conclusion)
 ```
 
 ```{r issue_leak}
-obj <-
-svy %>%
-filter(renter, issue_leak) %>%
-mutate(geo_id2 = as.factor(geo_id2)) %>%
-group_by(geo_id2) %>%
-summarise(tot = survey_total(issue_leak)) %>%
-mutate(lower = tot-zscore*tot_se,
-       upper = tot+zscore*tot_se) %>%
-full_join(nyc311, by = "geo_id2") %>%
-select(geo_id2, contains("leak"), contains("tot"), lower, upper) %>%
-mutate(same = issue_leak >= lower & issue_leak <= upper,
-       conclusion = case_when(issue_leak < lower ~ "underreported_to_311",
-                            issue_leak > upper ~ "overreported_to_311")) %>%
-filter(same == FALSE | is.na(same)) %>%
-left_join(pumas, by = c("geo_id2" = "PUMA5ID"))
+issue_leak <- nhst(issue = issue_leak) %>% mutate(issue = "leak")
 
-table(obj$conclusion, useNA = "ifany") 
-
-issue_leak <- nhst(issue = issue_leak) %>% mutate(issue = "leak") %>% View()
+count(issue_leak, conclusion)
 ```
 
+```{r}
+issue_summary <- bind_rows(issue_toilet, issue_heat, issue_pests, issue_plasterpaint, issue_leak)
+```
+
+```{r}
+write_csv(issue_summary, "../../data/output/results/analysis_summary.csv")
+```
 
