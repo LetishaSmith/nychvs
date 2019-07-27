@@ -34,6 +34,26 @@ alpha <- .05/(nrow(pumas)*7)
 zscore <- qnorm(1-alpha/2)
 ```
 
+```{r}
+nhst <- function(df_svy = svy, df_311 = nyc311, issue_type){
+  issue_quo <- enquo(issue_type)
+    
+  df_svy %>%
+  filter(renter, !! issue_quo) %>%
+  group_by(geo_id2) %>%
+  summarise(tot = survey_total(!! issue_quo)) %>%
+  mutate(lower = tot-zscore*tot_se,
+         upper = tot+zscore*tot_se) %>%
+  full_join(df_311, by = "geo_id2") %>%
+  mutate(conclusion = case_when(!! issue_quo < lower ~ "underreported_to_311",
+                                !! issue_quo > upper ~ "overreported_to_311",
+                              TRUE ~ "within_expectation")) %>%
+  left_join(pumas, by = c("geo_id2" = "PUMA5ID")) %>%
+  select(geo_id2:upper, conclusion:PUMA_2010)
+}
+```
+
+
 ```{r issue_stairway}
 obj <-
 svy %>%
@@ -46,12 +66,14 @@ mutate(lower = tot-zscore*tot_se,
 full_join(nyc311, by = "geo_id2") %>%
 select(geo_id2, contains("stair"), contains("tot"), lower, upper) %>%
 mutate(same = issue_stairway >= lower & issue_stairway <= upper,
-       how_diff = case_when(issue_stairway < lower ~ "less_problems",
-                            issue_stairway > upper ~ "more_problems")) %>%
+       conclusion = case_when(issue_stairway < lower ~ "underreported_to_311",
+                            issue_stairway > upper ~ "overreported_to_311")) %>%
 filter(same == FALSE | is.na(same)) %>%
 left_join(pumas, by = c("geo_id2" = "PUMA5ID"))
 
-table(obj$how_diff, useNA = "ifany")
+table(obj$conclusion, useNA = "ifany")
+
+issue_stairway <- nhst(issue_type = issue_stairway) %>% mutate(issue = "stairway")
 ```
 
 ```{r issue_floors}
@@ -66,32 +88,33 @@ mutate(lower = floors_tot-zscore*floors_tot_se,
 full_join(nyc311, by = "geo_id2") %>%
 select(geo_id2, contains("floors"), lower, upper) %>%
 mutate(same = issue_floors >= lower & issue_floors <= upper,
-       how_diff = case_when(issue_floors < lower ~ "less_problems",
-                            issue_floors > upper ~ "more_problems")) %>%
+       conclusion = case_when(issue_floors < lower ~ "underreported_to_311",
+                            issue_floors > upper ~ "overreported_to_311")) %>%
 filter(same == FALSE | is.na(same)) %>%
 left_join(pumas, by = c("geo_id2" = "PUMA5ID"))
 
-table(obj$how_diff, useNA = "ifany")
+table(obj$conclusion, useNA = "ifany")
+
+issue_floors <- nhst(issue_type = issue_floors) %>% mutate(issue = "floors")
 ```
 
 ```{r issue_toilet}
 obj <-
 svy %>%
 filter(renter, issue_toilet) %>%
-mutate(geo_id2 = as.factor(geo_id2)) %>%
 group_by(geo_id2) %>%
 summarise(tot = survey_total(issue_toilet)) %>%
 mutate(lower = tot-zscore*tot_se,
        upper = tot+zscore*tot_se) %>%
 full_join(nyc311, by = "geo_id2") %>%
 select(geo_id2, contains("toilet"), contains("tot"), lower, upper) %>%
-mutate(same = issue_toilet >= lower & issue_toilet <= upper,
-       how_diff = case_when(issue_toilet < lower ~ "less_problems",
-                            issue_toilet > upper ~ "more_problems")) %>%
-filter(same == FALSE | is.na(same)) %>%
+mutate(conclusion = case_when(issue_toilet < lower ~ "underreported_to_311",
+                            issue_toilet > upper ~ "overreported_to_311")) %>%
 left_join(pumas, by = c("geo_id2" = "PUMA5ID"))
 
-table(obj$how_diff, useNA = "ifany")
+table(obj$conclusion, useNA = "ifany")
+
+issue_toilet <- nhst(issue_type = issue_toilet) %>% mutate(issue = "toilet")
 ```
 
 ```{r issue_heat}
@@ -106,12 +129,14 @@ mutate(lower = tot-zscore*tot_se,
 full_join(nyc311, by = "geo_id2") %>%
 select(geo_id2, contains("heat"), contains("tot"), lower, upper) %>%
 mutate(same = issue_heat >= lower & issue_heat <= upper,
-       how_diff = case_when(issue_heat < lower ~ "less_problems",
-                            issue_heat > upper ~ "more_problems")) %>%
+       conclusion = case_when(issue_heat < lower ~ "underreported_to_311",
+                            issue_heat > upper ~ "overreported_to_311")) %>%
 filter(same == FALSE | is.na(same)) %>%
 left_join(pumas, by = c("geo_id2" = "PUMA5ID"))
 
-table(obj$how_diff, useNA = "ifany")
+table(obj$conclusion, useNA = "ifany")
+
+issue_heat <- nhst(issue_type = issue_heat) %>% mutate(issue = "heat")
 ```
 
 ```{r issue_pests}
@@ -126,32 +151,36 @@ mutate(lower = tot-zscore*tot_se,
 full_join(nyc311, by = "geo_id2") %>%
 select(geo_id2, contains("pests"), contains("tot"), lower, upper) %>%
 mutate(same = issue_pests >= lower & issue_pests <= upper,
-       how_diff = case_when(issue_pests < lower ~ "less_problems",
-                            issue_pests > upper ~ "more_problems")) %>%
+       conclusion = case_when(issue_pests < lower ~ "underreported_to_311",
+                            issue_pests > upper ~ "overreported_to_311")) %>%
 filter(same == FALSE | is.na(same)) %>%
 left_join(pumas, by = c("geo_id2" = "PUMA5ID"))
 
-table(obj$how_diff, useNA = "ifany")
+table(obj$conclusion, useNA = "ifany")
+
+issue_pests <- nhst(issue_type = issue_pests) %>% mutate(issue = "pests")
 ```
 
 ```{r issue_plasterpaint}
 obj <-
 svy %>%
 filter(renter, issue_plasterpaint) %>%
-mutate(geo_id2 = as.factor(geo_id2)) %>%
 group_by(geo_id2) %>%
-summarise(tot = survey_total(issue_pests)) %>%
-mutate(lower = tot-zscore*tot_se,
+summarise(tot = survey_total(issue_plasterpaint)) %>%
+mutate(issue = "issue_plasterpaint", 
+       lower = tot-zscore*tot_se,
        upper = tot+zscore*tot_se) %>%
 full_join(nyc311, by = "geo_id2") %>%
-select(geo_id2, contains("paint"), contains("tot"), lower, upper) %>%
-mutate(same = issue_plasterpaint >= lower & issue_plasterpaint <= upper,
-       how_diff = case_when(issue_plasterpaint < lower ~ "less_problems",
-                            issue_plasterpaint > upper ~ "more_problems")) %>%
-filter(same == FALSE | is.na(same)) %>%
-left_join(pumas, by = c("geo_id2" = "PUMA5ID"))
+mutate(conclusion = case_when(issue_plasterpaint < lower ~ "underreported_to_311",
+                            issue_plasterpaint > upper ~ "overreported_to_311",
+                            TRUE ~ "within_expectation")) %>%
+left_join(pumas, by = c("geo_id2" = "PUMA5ID")) %>%
+select(geo_id2:upper, conclusion:PUMA_2010)
 
-table(obj$how_diff, useNA = "ifany")
+
+issue_plasterpaint <- nhst(issue = issue_plasterpaint) %>% mutate(issue = "plasterpaint") %>% View()
+table(obj$conclusion, useNA = "ifany")
+
 ```
 
 ```{r issue_leak}
@@ -166,12 +195,14 @@ mutate(lower = tot-zscore*tot_se,
 full_join(nyc311, by = "geo_id2") %>%
 select(geo_id2, contains("leak"), contains("tot"), lower, upper) %>%
 mutate(same = issue_leak >= lower & issue_leak <= upper,
-       how_diff = case_when(issue_leak < lower ~ "less_problems",
-                            issue_leak > upper ~ "more_problems")) %>%
+       conclusion = case_when(issue_leak < lower ~ "underreported_to_311",
+                            issue_leak > upper ~ "overreported_to_311")) %>%
 filter(same == FALSE | is.na(same)) %>%
 left_join(pumas, by = c("geo_id2" = "PUMA5ID"))
 
-table(obj$how_diff, useNA = "ifany") 
+table(obj$conclusion, useNA = "ifany") 
+
+issue_leak <- nhst(issue = issue_leak) %>% mutate(issue = "leak") %>% View()
 ```
 
 
