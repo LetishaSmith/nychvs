@@ -23,7 +23,6 @@ Complaint Type %in% c("HEAT/HOT WATER", "FLOORING/STAIRS", "PLUMBING", "UNSANITA
 
 ```{r, eval=FALSE}
 # df0 <- read_csv("../../data/input/311_Service_Requests_from_2010_to_Present.csv")
-rm(list = ls())
 df0 <- read_csv("../../data/input/311_Service_Requests_from_2010_to_Present.csv") %>%
         select(`Created Date`, `Complaint Type`, Descriptor, `Incident Zip`, 
                `Incident Address`, `Street Name`, Borough, City, Latitude, Longitude, 
