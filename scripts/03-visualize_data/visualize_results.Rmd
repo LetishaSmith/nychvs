@@ -1,0 +1,223 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r load_packages}
+# remotes::install_github("mfherman/nycgeo")
+library(nycgeo)
+library(sf)
+library(tidyverse)
+library(viridis)
+library(colormap)
+```
+
+```{r load_data}
+df <- read_csv("../../data/output/results/analysis_summary.csv") %>%
+      mutate(geo_id2 = as.character(geo_id2)) %>%
+      left_join(nyc_boundaries(geography = "puma"), by = c("geo_id2" = "geoid"))
+```
+
+```{r issue_heat}
+df %>%
+  filter(issue == "heat") %>%
+  ggplot() +
+  geom_sf(aes(geometry = geometry, fill = conclusion)) +
+  scale_fill_manual(values = c("#ffe945", "#00204c")) +
+  ggtitle("Heat Issues") +
+  theme(legend.title = element_blank(),
+        legend.position = c(0.2, 0.905),
+        axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank())
+```
+
+```{r issue_leak}
+df %>%
+  filter(issue == "leak") %>%
+  ggplot() +
+  geom_sf(aes(geometry = geometry, fill = conclusion)) +
+  scale_fill_manual(values = c("#ffe945", "#00204c")) +
+  ggtitle("Leak Issues") +
+  theme(legend.title = element_blank(),
+        legend.position = c(0.2, 0.905),
+        axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank())
+```
+
+```{r issue_pests}
+df %>%
+  filter(issue == "pests") %>%
+  ggplot() +
+  geom_sf(aes(geometry = geometry, fill = conclusion)) +
+  scale_fill_manual(values = c("#ffe945", "#00204c")) +
+  ggtitle("Pest Issues") +
+  theme(legend.title = element_blank(),
+        legend.position = c(0.2, 0.905),
+        axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank())
+```
+
+```{r issue_plasterpaint}
+df %>%
+  filter(issue == "plasterpaint") %>%
+  ggplot() +
+  geom_sf(aes(geometry = geometry, fill = conclusion)) +
+  scale_fill_manual(values = c("#ffe945", "#00204c")) +
+  ggtitle("Plaster/Paint Issues") +
+  theme(legend.title = element_blank(),
+        legend.position = c(0.2, 0.905),
+        axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank())
+
+```
+
+```{r issue_toilet}
+df %>%
+  filter(issue == "toilet") %>%
+  ggplot() +
+  geom_sf(aes(geometry = geometry, fill = conclusion)) +
+  scale_fill_manual(values = c("#ffe945", "#00204c")) +
+  ggtitle("Plumbing Issues") +
+  theme(legend.title = element_blank(),
+        legend.position = c(0.2, 0.905),
+        axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank())
+```
+
+```{r issue_rate}
+df %>%
+  filter(conclusion == "underreported to 311") %>%
+  group_by(geo_id2) %>%
+  summarise(underreport_rate = n()/5) %>%
+  ungroup() %>%
+  full_join(nyc_boundaries(geography = "puma"), by = c("geo_id2" = "geoid")) %>%
+  mutate(underreport_rate = if_else(is.na(underreport_rate), 0, underreport_rate)) %>%
+  ggplot() +
+  geom_sf(aes(geometry = geometry, fill = underreport_rate)) +
+  scale_fill_viridis_c(option = "cividis") +
+  theme_minimal() +
+  theme(legend.title = element_blank(),
+        legend.position = c(0.2, 0.8),
+        axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank()) +
+  ggtitle("Which neighborhoods had the highest rates of underreporting?")
+
+```
+
+```{r}
+nyc311 <- read_rds("../../data/output/nyc311/02-nyc311_complaintXsubboro.rds") 
+colnames(nyc311) = str_remove(colnames(nyc311), "issue_")
+nyc311 %>%
+select(-geo_id2) %>%
+  rename(plumbing = toilet) %>%
+colSums() %>%
+  reshape2::melt(value.name = "n") %>%
+  rownames_to_column(var = "issue") %>%
+ggplot(aes(x = reorder(issue, -n), y = n)) +
+  geom_col() +
+  scale_x_discrete("") +
+  scale_y_continuous(name = "")  +
+  geom_text(aes(x = issue, y = n + 500, label = n)) +
+  ggtitle("Which complaint is most common?")
+
+```
+
+```{r}
+tract2pumas <- read_csv("../../data/input/linking/2010_Census_Tract_to_2010_PUMA.csv")
+# nyc311 %>%
+# left_join(nyc_boundaries(geography = "puma"), by = c("geo_id2" = "geoid")) %>%
+# select(geo_id2:leak, borough_name) %>%
+#   filter(!is.na(borough_name)) %>%
+# View()
+tot_complaints <- read_rds("../../data/output/nyc311/01-nyc311_complaintXcoordinates.rds") %>%
+                  ungroup() %>%
+        mutate(census_code = as.character(census_code),
+               state_code = str_sub(census_code, 1, 2),
+               county_code = str_sub(census_code, 3, 5),
+               census_tract = str_sub(census_code, 6, 11)) %>%
+  left_join(y = tract2pumas, 
+                 by = c("state_code" = "STATEFP", 
+                        "county_code" = "COUNTYFP",
+                        "census_tract" = "TRACTCE")) %>%
+       mutate(geo_id2 = paste0(state_code, PUMA5CE)) %>%
+       group_by(geo_id2) %>%
+       summarise(n = n()) %>%
+  ungroup() %>%
+  full_join(nyc_boundaries(geography = "puma"), by = c("geo_id2" = "geoid")) %>%
+  filter(!is.na(geo_id2)) %>%
+  arrange(desc(n))
+
+  ggplot(tot_complaints) +
+  geom_sf(aes(geometry = geometry, fill = n)) +
+  scale_fill_viridis_c(name = "Complaint Count", option = "cividis") +
+  theme_minimal() +
+  theme(legend.title = element_blank(),
+        legend.position = c(0.2, 0.8),
+        axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank()) +
+    ggtitle("Which neighborhoods reported the most issues?")
+```
+
+```{r}
+heat_complaints <- read_rds("../../data/output/nyc311/01-nyc311_complaintXcoordinates.rds") %>%
+                  ungroup() %>%
+                  select(issue_heat, census_code) %>%
+                  filter(issue_heat == 1) %>%
+        mutate(census_code = as.character(census_code),
+               state_code = str_sub(census_code, 1, 2),
+               county_code = str_sub(census_code, 3, 5),
+               census_tract = str_sub(census_code, 6, 11)) %>%
+  left_join(y = tract2pumas, 
+                 by = c("state_code" = "STATEFP", 
+                        "county_code" = "COUNTYFP",
+                        "census_tract" = "TRACTCE")) %>%
+       mutate(geo_id2 = paste0(state_code, PUMA5CE)) %>%
+       group_by(geo_id2) %>%
+       summarise(n = n()) %>%
+  ungroup() %>%
+  full_join(nyc_boundaries(geography = "puma"), by = c("geo_id2" = "geoid")) %>%
+  filter(!is.na(geo_id2)) %>%
+  arrange(desc(n))
+
+  ggplot(heat_complaints) +
+  geom_sf(aes(geometry = geometry, fill = n)) +
+  scale_fill_viridis_c(name = "Complaint Count", option = "cividis") +
+  theme_minimal() +
+  theme(legend.title = element_blank(),
+        legend.position = c(0.2, 0.8),
+        axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank()) +
+    ggtitle("Which neighborhoods reported the most HEAT issues?")
+```
+
