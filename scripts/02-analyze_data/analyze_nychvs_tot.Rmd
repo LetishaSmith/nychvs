@@ -47,11 +47,12 @@ nhst <- function(df_svy = svy, df_311 = nyc311, issue_type){
   mutate(lower = tot-zscore*tot_se,
          upper = tot+zscore*tot_se) %>%
   full_join(df_311, by = "geo_id2") %>%
-  mutate(conclusion = case_when(!! issue_quo < lower ~ "underreported_to_311",
-                                !! issue_quo > upper ~ "overreported_to_311",
-                              TRUE ~ "within_expectation")) %>%
+  mutate(conclusion = case_when(!! issue_quo < lower ~ "underreported to 311",
+                                !! issue_quo > upper ~ "overreported to 311",
+                              TRUE ~ "within expectation")) %>%
   left_join(pumas, by = c("geo_id2" = "PUMA5ID")) %>%
-  select(geo_id2:upper, conclusion:PUMA_2010)
+  rename(issue_count = !! issue_quo) %>%
+  select(geo_id2:upper, issue_count, conclusion:PUMA_2010)
 }
 ```
 
