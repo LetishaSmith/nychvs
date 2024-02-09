@@ -9,7 +9,7 @@ library(tigris)
 ```
 
 Interviews started in January of 2017 and continued through May 2017
-Toilet qustion past 3 months
+Toilet question past 3 months
 Mice and rats past 3 months
 
 cockroaches past month
@@ -20,9 +20,9 @@ department housing preservation
 06/01/2017 12:00:00 AM
 
 Complaint Type %in% c("HEAT/HOT WATER", "FLOORING/STAIRS", "PLUMBING", "UNSANITARY CONDITION", "PAINT/PLASTER", "WATER LEAK")
+Location Type has only one value `RESIDENTIAL BUILDING` which is why this column is excluded from the analysis
 
 ```{r, eval=FALSE}
-# df0 <- read_csv("../../data/input/311_Service_Requests_from_2010_to_Present.csv")
 df0 <- read_csv("../../data/input/311_Service_Requests_from_2010_to_Present.csv") %>%
         select(`Created Date`, `Complaint Type`, Descriptor, `Incident Zip`, 
                `Incident Address`, `Street Name`, Borough, City, Latitude, Longitude, 
@@ -47,7 +47,7 @@ df0 <- read_csv("../../data/input/311_Service_Requests_from_2010_to_Present.csv"
           # confirm that a residence only reports complain once in dataset
         group_by(`Complaint Type`, Descriptor, Latitude, Longitude, 
                  Borough, City, `Incident Zip`) %>%
-        summarise_at(vars(starts_with("issue")), funs(max(.))) 
+        summarise_at(vars(starts_with("issue")), funs(max(.)))
 ```
 
 use [census geolocate api](https://www.census.gov/geo/maps-data/data/geocoder.html) to get the census code associated with coordinates                  
@@ -164,4 +164,3 @@ df %>%
 group_by(`Complaint Type`, Descriptor, issue_leak) %>%
 summarise(sum(issue_leak))
 ```
-
