@@ -9,6 +9,7 @@ library(sf)
 library(tidyverse)
 library(viridis)
 library(colormap)
+library(reshape2)
 ```
 
 ```{r load_data}
@@ -138,10 +139,11 @@ colSums() %>%
   rownames_to_column(var = "issue") %>%
 ggplot(aes(x = reorder(issue, -n), y = n)) +
   geom_col() +
-  scale_x_discrete("") +
-  scale_y_continuous(name = "")  +
+  scale_x_discrete("complaint") +
+  scale_y_continuous(name = "total residences with complaint")  +
   geom_text(aes(x = issue, y = n + 500, label = n)) +
-  ggtitle("Which complaint is most common?")
+  ggtitle(label = "Which 311 complaint is most common?",
+          subtitle = 'October 2016 - May 2017') 
 
 ```
 
