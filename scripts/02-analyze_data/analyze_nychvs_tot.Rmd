@@ -17,7 +17,7 @@ nyc311 <- read_rds("../../data/output/nyc311/02-nyc311_complaintXsubboro.rds")
 pumas <- read_excel("../../data/input/linking/nyc_puma_neighborhood.xls")
 ```
 
-create an aptotriate design object that contains the data variables and the replication weights metadata needed for valid estimation
+create an appropriate design object that contains the data variables and the replication weights metadata needed for valid estimation
 ```{r}
 svy <- svrepdesign(variables = nychvs[ ,seq(19)], 
                     repweights = nychvs[ ,paste0("FW", seq(80))],
@@ -100,7 +100,7 @@ count(issue_leak, conclusion)
 ```
 
 ```{r}
-issue_summary <- bind_rows(issue_toilet, issue_heat, issue_pests, issue_plasterpaint, issue_leak)
+issue_summary <- bind_rows(issue_toilet, issue_heat, issue_pests, issue_plasterpaint, issue_leak, issue_floors, issue_stairway)
 ```
 
 ```{r}
